@@ -28,7 +28,10 @@
   </footer>
   <script>
     // "New note" opens GitHub's web editor with today's filename + front matter prefilled.
-    const d = new Date().toISOString().slice(0, 10);
+    const n = new Date();
+    const d = n.getFullYear() + "-" +
+      String(n.getMonth() + 1).padStart(2, "0") + "-" +
+      String(n.getDate()).padStart(2, "0");
     const tmpl = '---\ntitle: "Untitled"\nsummary: ""\n---\n\n';
     document.getElementById("new-note").href =
       "https://github.com/Bijig0/poker-study/new/main/notes" +
