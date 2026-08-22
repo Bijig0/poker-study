@@ -5,13 +5,13 @@ summary: "Write markdown in notes/, run ./sync, read it anywhere."
 
 This is the study journal. Notes are markdown files in a GitHub repo, and the site republishes itself on every commit.
 
-## Writing from any laptop (no setup)
+## Writing from any laptop
 
-Click **✎ new note** at the top of the site. It opens GitHub's web editor, logged into your GitHub account, with today's filename and the front matter already filled in. Change `untitled` in the filename to a slug, write, hit **Commit changes** — the site updates in about a minute.
+Click **✎ write** at the top of the site, enter the password, and you're in the editor: pick a note from the sidebar or hit **+ New note**, write markdown, hit **Publish**. The site updates in about a minute. Every note also has an **edit this note ✎** link at the bottom that jumps straight to it in the editor.
 
-Every note also has an **edit this note ✎** link at the bottom that opens that file in the same editor.
+The login is remembered per browser, so normally you only type the password once per laptop.
 
-For longer sessions, press `.` while viewing the repo on github.com to get a full VS Code editor in the browser.
+(Backup path: the repo is still editable on github.com, including the `.`-for-VS-Code trick.)
 
 ## Writing locally (optional)
 
