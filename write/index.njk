@@ -13,35 +13,34 @@ eleventyExcludeFromCollections: true
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✎</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Newsreader:ital,opsz@0,6..72;1,6..72&display=swap" rel="stylesheet">
   <style>
     :root {
-      --paper: #f6f0e1; --paper-deep: #eee5cf; --ink: #22301f; --ink-soft: #5c6653;
-      --felt: #1e6b4e; --oxblood: #8e2f2f; --gold: #b98a2f; --rule: #d8ccae;
-      --mono: "JetBrains Mono", ui-monospace, monospace;
+      /* gate (matches the site) */
+      --paper: #f6f0e1; --ink: #22301f; --ink-soft: #5c6653; --felt: #1e6b4e;
+      --oxblood: #8e2f2f; --rule: #d8ccae;
+      /* obsidian-dark app */
+      --s-bg: #1c1c1c;         /* sidebar */
+      --e-bg: #202020;         /* editor */
+      --text: #dcddde;
+      --muted: #8b8b8b;
+      --faint: #666;
+      --accent: #8a7cff;
+      --hover: #272727;
+      --active: #333333;
+      --border: #333333;
+      --danger: #e9595d;
+      --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     * { box-sizing: border-box; }
-    body {
-      margin: 0; background: var(--paper); color: var(--ink);
-      font-family: "Newsreader", Georgia, serif; min-height: 100dvh;
-    }
-    button {
-      font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.06em;
-      text-transform: uppercase; cursor: pointer; border: none; border-radius: 999px;
-      padding: 0.55em 1.3em; background: var(--felt); color: var(--paper);
-    }
-    button:hover { background: var(--oxblood); }
-    button.ghost { background: none; color: var(--ink-soft); border: 1px solid var(--rule); }
-    button.ghost:hover { color: var(--oxblood); border-color: var(--oxblood); background: none; }
-    button:disabled { opacity: 0.5; cursor: default; }
-    input, textarea {
-      font-family: inherit; color: var(--ink); background: transparent;
-      border: none; outline: none; width: 100%;
-    }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: var(--ui); }
 
     /* ── Gate ── */
     #gate {
-      min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+      min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+      padding: 1.5rem; background: var(--paper); color: var(--ink);
+      font-family: "Newsreader", Georgia, serif;
     }
     .gate-card {
       width: min(24rem, 100%); text-align: center; background: #fbf7ec;
@@ -51,84 +50,141 @@ eleventyExcludeFromCollections: true
     .gate-card .suits { color: var(--oxblood); letter-spacing: 0.6em; font-size: 0.8rem; }
     .gate-card h1 { font-family: "Fraunces", Georgia, serif; font-size: 1.7rem; margin: 0.5rem 0 1.5rem; }
     .gate-card input {
-      border: 1px solid var(--rule); border-radius: 8px; padding: 0.6em 0.9em;
-      font-size: 1rem; background: #fff; margin-bottom: 0.8rem;
+      width: 100%; border: 1px solid var(--rule); border-radius: 8px; padding: 0.6em 0.9em;
+      font-size: 1rem; background: #fff; margin-bottom: 0.8rem; font-family: inherit;
+      color: var(--ink); outline: none;
     }
     .gate-card input:focus { border-color: var(--felt); }
+    .gate-card button {
+      font-family: ui-monospace, monospace; font-size: 0.78rem; letter-spacing: 0.06em;
+      text-transform: uppercase; cursor: pointer; border: none; border-radius: 999px;
+      padding: 0.55em 1.3em; background: var(--felt); color: var(--paper);
+    }
+    .gate-card button:hover { background: var(--oxblood); }
     .gate-hint { font-size: 0.85rem; color: var(--ink-soft); font-style: italic; margin: 1rem 0 0; }
     .gate-err { color: var(--oxblood); font-size: 0.9rem; min-height: 1.3em; margin: 0.5rem 0; }
     #setup-extra { display: none; text-align: left; }
     #setup-extra p { font-size: 0.85rem; color: var(--ink-soft); margin: 0.2rem 0 0.6rem; }
-    .linkish { background: none; border: none; color: var(--felt); text-decoration: underline;
-      text-transform: none; letter-spacing: 0; font-size: 0.8rem; padding: 0; }
-    .linkish:hover { background: none; color: var(--oxblood); }
+    .linkish { background: none !important; border: none; color: var(--felt) !important;
+      text-decoration: underline; text-transform: none !important; letter-spacing: 0 !important;
+      font-size: 0.8rem !important; padding: 0 !important; cursor: pointer; }
 
-    /* ── App ── */
-    #app { display: none; min-height: 100dvh; }
-    #app.on { display: grid; grid-template-columns: 15.5rem 1fr; }
+    /* ── App shell ── */
+    #app { display: none; height: 100dvh; background: var(--e-bg); color: var(--text); }
+    #app.on { display: flex; }
+
     aside {
-      border-right: 1px solid var(--rule); background: var(--paper-deep);
-      padding: 1.25rem 1rem; display: flex; flex-direction: column; gap: 0.5rem;
-      height: 100dvh; position: sticky; top: 0; overflow-y: auto;
+      width: 270px; min-width: 270px; background: var(--s-bg);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; user-select: none;
     }
-    .side-head { font-family: "Fraunces", Georgia, serif; font-weight: 700; font-size: 1.1rem; margin: 0 0 0.4rem; }
-    .side-head a { color: var(--ink); text-decoration: none; }
-    .side-head a:hover { color: var(--oxblood); }
-    #note-list { list-style: none; margin: 0.5rem 0; padding: 0; flex: 1; }
-    #note-list ul { list-style: none; margin: 0; padding-left: 0.7rem; border-left: 1px solid var(--rule); }
-    #note-list li.note {
-      padding: 0.45rem 0.55rem; border-radius: 6px; cursor: pointer;
-      font-size: 0.92rem; line-height: 1.3;
+    .side-top {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 10px 6px 14px;
     }
-    #note-list li.note:hover { background: #e4d9bd; }
-    #note-list li.note.active { background: var(--felt); color: var(--paper); }
-    #note-list li.note time { display: block; font-family: var(--mono); font-size: 0.62rem;
-      letter-spacing: 0.1em; opacity: 0.75; }
-    .frow {
-      display: flex; gap: 0.4rem; align-items: baseline; cursor: pointer;
-      padding: 0.4rem 0.45rem; border-radius: 6px;
-      font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em;
-      text-transform: uppercase; color: var(--ink-soft);
+    .vault-name {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.05em; color: var(--muted);
+      text-transform: uppercase;
     }
-    .frow:hover { color: var(--oxblood); }
-    .frow .arrow { transition: transform 0.15s ease; display: inline-block; color: var(--gold); }
-    li.folder.closed > .frow .arrow { transform: rotate(-90deg); }
-    li.folder.closed > ul { display: none; }
-    .side-foot { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .side-actions { display: flex; gap: 0.5rem; }
-    .side-actions #b-new { flex: 1; }
+    .icons { display: flex; gap: 2px; }
+    .icon {
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      padding: 5px; border-radius: 5px; display: flex;
+    }
+    .icon:hover { background: var(--hover); color: var(--text); }
+    .icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2;
+      stroke-linecap: round; stroke-linejoin: round; }
 
-    #editor { padding: 3rem clamp(1.25rem, 6vw, 4.5rem); max-width: 52rem; }
-    #f-title {
-      font-family: "Fraunces", Georgia, serif; font-weight: 700;
-      font-size: clamp(1.8rem, 4.5vw, 2.4rem); line-height: 1.15; letter-spacing: -0.015em;
+    #tree { flex: 1; overflow-y: auto; padding: 4px 8px 40px; outline: none; }
+    #tree.droot { box-shadow: inset 0 0 0 2px var(--accent); border-radius: 6px; }
+
+    .row {
+      display: flex; align-items: center; gap: 3px;
+      padding: 3px 6px; border-radius: 5px; cursor: pointer;
+      font-size: 13.5px; line-height: 1.45; color: var(--muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    #f-title::placeholder, #f-summary::placeholder, #f-body::placeholder { color: #b6ac91; }
-    #f-summary { font-style: italic; font-size: 1.05rem; color: var(--ink-soft); margin-top: 0.4rem; }
-    #f-body {
-      margin-top: 1.6rem; font-size: 1.1rem; line-height: 1.65; resize: none;
-      min-height: 55dvh; border-top: 1px solid var(--rule); padding-top: 1.4rem;
+    .row:hover { background: var(--hover); color: var(--text); }
+    .row.active { background: var(--active); color: #fff; }
+    .row.drop { box-shadow: inset 0 0 0 2px var(--accent); }
+    .row .chev {
+      width: 14px; min-width: 14px; height: 14px; display: inline-flex; align-items: center;
+      justify-content: center; transition: transform 0.12s ease; color: var(--faint);
     }
-    .bar {
-      display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2rem;
-      font-family: var(--mono); font-size: 0.75rem; color: var(--ink-soft);
-      flex-wrap: wrap;
+    .row .chev svg { width: 10px; height: 10px; stroke: currentColor; fill: none;
+      stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .row.folder.closed .chev { transform: rotate(-90deg); }
+    .row.note { padding-left: 6px; }
+    .row .nm { overflow: hidden; text-overflow: ellipsis; }
+    .children { margin-left: 15px; border-left: 1px solid #2b2b2b; padding-left: 2px; }
+    .folder.closed + .children { display: none; }
+    .row input.rn {
+      background: var(--e-bg); border: 1px solid var(--accent); border-radius: 4px;
+      color: var(--text); font: inherit; padding: 0 4px; width: 100%; outline: none;
     }
-    .bar .grow { flex: 1; }
-    #f-folder {
-      font-family: var(--mono); font-size: 0.75rem; color: var(--felt);
-      border: 1px dashed var(--rule); border-radius: 6px; padding: 0.3em 0.6em;
-      width: 14rem; background: #fbf7ec;
+
+    .side-bottom {
+      display: flex; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--border);
     }
-    #f-folder:focus { border-color: var(--felt); border-style: solid; }
-    #status { font-style: normal; }
-    #status.ok { color: var(--felt); }
-    #status.err { color: var(--oxblood); }
+    .mini {
+      background: none; border: none; color: var(--faint); font-size: 11.5px;
+      cursor: pointer; text-decoration: none; padding: 3px 6px; border-radius: 4px;
+      font-family: var(--ui);
+    }
+    .mini:hover { background: var(--hover); color: var(--text); }
+
+    /* ── Editor pane ── */
+    main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .pane-top {
+      display: flex; align-items: center; gap: 10px; padding: 8px 16px;
+      border-bottom: 1px solid var(--border); font-size: 12.5px; color: var(--muted);
+      min-height: 40px;
+    }
+    #crumb { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #crumb .sep { color: var(--faint); margin: 0 5px; }
+    .grow { flex: 1; }
+    #status { font-size: 12px; }
+    #status.ok { color: #6fbf8f; }
+    #status.err { color: var(--danger); }
+    #b-publish {
+      background: var(--accent); color: #fff; border: none; border-radius: 6px;
+      padding: 5px 14px; font-size: 12.5px; font-weight: 500; cursor: pointer;
+      font-family: var(--ui);
+    }
+    #b-publish:hover { filter: brightness(1.12); }
+    #b-publish:disabled { opacity: 0.5; cursor: default; }
+
+    .doc {
+      flex: 1; overflow-y: auto; padding: 40px clamp(20px, 8vw, 100px) 60px;
+    }
+    .doc input, .doc textarea {
+      display: block; width: 100%; max-width: 44rem; margin: 0 auto;
+      background: transparent; border: none; outline: none; color: var(--text);
+      font-family: var(--ui);
+    }
+    #f-title { font-size: 2em; font-weight: 700; line-height: 1.25; margin-bottom: 2px; }
+    #f-title::placeholder, #f-summary::placeholder, #f-body::placeholder { color: #555; }
+    #f-summary { font-size: 13.5px; color: var(--muted); font-style: italic; margin-bottom: 18px; }
+    #f-body { font-size: 16px; line-height: 1.65; resize: none; min-height: 60vh; }
+
+    /* ── Context menu ── */
+    #ctx {
+      position: fixed; z-index: 50; display: none; min-width: 168px;
+      background: #262626; border: 1px solid #3a3a3a; border-radius: 8px;
+      padding: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-size: 13px;
+    }
+    #ctx .mi {
+      padding: 5px 10px; border-radius: 5px; cursor: pointer; color: var(--text);
+      display: flex; gap: 8px; align-items: center;
+    }
+    #ctx .mi:hover { background: #333; }
+    #ctx .mi.danger { color: var(--danger); }
+    #ctx .hr { height: 1px; background: #3a3a3a; margin: 4px 6px; }
 
     @media (max-width: 720px) {
-      #app.on { grid-template-columns: 1fr; }
-      aside { height: auto; position: static; }
-      #editor { padding: 1.5rem 1.25rem; }
+      #app.on { flex-direction: column; }
+      aside { width: 100%; min-width: 0; max-height: 45dvh; }
+      .doc { padding: 20px 16px 40px; }
     }
   </style>
 </head>
@@ -154,53 +210,63 @@ eleventyExcludeFromCollections: true
 
 <div id="app">
   <aside>
-    <h2 class="side-head"><a href="/">♠ Poker Study</a></h2>
-    <div class="side-actions">
-      <button id="b-new">+ New note</button>
-      <button class="ghost" id="b-newfolder">+ Folder</button>
+    <div class="side-top">
+      <span class="vault-name">Poker Study</span>
+      <div class="icons">
+        <button class="icon" id="i-newnote" title="New note">
+          <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </button>
+        <button class="icon" id="i-newfolder" title="New folder">
+          <svg viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.2 3.9A2 2 0 0 0 7.5 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M12 10v6"/><path d="M9 13h6"/></svg>
+        </button>
+      </div>
     </div>
-    <ul id="note-list"></ul>
-    <div class="side-foot">
-      <button class="ghost" id="b-delete">Delete</button>
-      <button class="ghost" id="b-logout">Log out</button>
+    <div id="tree"></div>
+    <div class="side-bottom">
+      <a class="mini" href="/">view site ↗</a>
+      <span class="grow"></span>
+      <button class="mini" id="b-logout">log out</button>
     </div>
   </aside>
-  <section id="editor">
-    <div class="bar">
-      <span id="f-name">new note</span>
-      <span>in:</span>
-      <input id="f-folder" placeholder="folder, e.g. preflop/3max" spellcheck="false">
-      <span class="grow"></span>
+  <main>
+    <div class="pane-top">
+      <div id="crumb">new note</div>
+      <div class="grow"></div>
       <span id="status"></span>
-      <button id="b-save">Publish</button>
+      <button id="b-publish">Publish</button>
     </div>
-    <input id="f-title" placeholder="Untitled">
-    <input id="f-summary" placeholder="One-line summary (optional)">
-    <textarea id="f-body" placeholder="Write in markdown…"></textarea>
-  </section>
+    <div class="doc">
+      <input id="f-title" placeholder="Untitled" spellcheck="false">
+      <input id="f-summary" placeholder="Add a one-line summary (shows on the site index)…">
+      <textarea id="f-body" placeholder="Write in markdown…"></textarea>
+    </div>
+  </main>
 </div>
+
+<div id="ctx"></div>
 
 <script>
 const REPO = "Bijig0/poker-study";
 const API = "https://api.github.com/repos/" + REPO;
 const CONFIG_PATH = "write-config.json";
 const LS_KEY = "poker-study-pass";
+const LS_CLOSED = "poker-study-closed";
 
-let token = null;          // decrypted GitHub token
-let config = null;         // {salt, iv, ct} or null if not set up
-let configSha = null;
-let notes = [];            // paths relative to notes/, e.g. "preflop/3max/2026-08-23-x.md"
-let current = null;        // path of open note (relative to notes/), null = new
-let currentSha = null;
-let dirty = false;
+let token = null, config = null, configSha = null;
+let allFiles = [];        // every blob path under notes/ (incl .gitkeep)
+let notes = [];           // .md paths under notes/
+let treeFolders = [];     // folder paths under notes/
+let current = null;       // open note path, null = draft
+let currentSha = null, currentDate = "", dirty = false;
+let draftFolder = "";     // folder a new draft will publish into
 
 const $ = (id) => document.getElementById(id);
+const CHEV = '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
 
 /* ── crypto ── */
 const te = new TextEncoder(), td = new TextDecoder();
 const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
 const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-
 async function deriveKey(pass, salt) {
   const base = await crypto.subtle.importKey("raw", te.encode(pass), "PBKDF2", false, ["deriveKey"]);
   return crypto.subtle.deriveKey(
@@ -223,23 +289,42 @@ async function decryptToken(pass, cfg) {
 /* ── github api ── */
 const utf8ToB64 = (s) => btoa(unescape(encodeURIComponent(s)));
 const b64ToUtf8 = (s) => decodeURIComponent(escape(atob(s.replace(/\n/g, ""))));
-
-const notePath = (p) => "/contents/notes/" + p.split("/").map(encodeURIComponent).join("/");
+const enc = (p) => p.split("/").map(encodeURIComponent).join("/");
+const notePath = (p) => "/contents/notes/" + enc(p);
 
 async function gh(path, opts = {}) {
   const headers = { Accept: "application/vnd.github+json", ...(opts.headers || {}) };
   if (token) headers.Authorization = "Bearer " + token;
   const res = await fetch(API + path, { ...opts, headers });
   if (res.status === 404) return null;
-  if (!res.ok) throw new Error("GitHub API " + res.status + ": " + (await res.text()).slice(0, 200));
+  if (!res.ok) throw new Error("GitHub " + res.status + ": " + (await res.text()).slice(0, 180));
   return res.json();
 }
-async function putFile(path, contentStr, message, sha) {
-  const body = { message, content: utf8ToB64(contentStr) };
+async function putRaw(path, b64content, message, sha) {
+  const body = { message, content: b64content };
   if (sha) body.sha = sha;
-  return gh("/contents/" + path.split("/").map(encodeURIComponent).join("/"),
-    { method: "PUT", body: JSON.stringify(body) });
+  return gh("/contents/" + enc(path), { method: "PUT", body: JSON.stringify(body) });
 }
+const putText = (path, str, message, sha) => putRaw(path, utf8ToB64(str), message, sha);
+async function delFile(path, message) {
+  const f = await gh("/contents/" + enc(path));
+  if (!f) return;
+  await gh("/contents/" + enc(path), {
+    method: "DELETE", body: JSON.stringify({ message, sha: f.sha }),
+  });
+}
+async function moveFile(oldPath, newPath, message) {
+  const f = await gh("/contents/" + enc(oldPath));
+  if (!f) throw new Error("missing: " + oldPath);
+  await putRaw(newPath, f.content.replace(/\n/g, ""), message);
+  await gh("/contents/" + enc(oldPath), {
+    method: "DELETE", body: JSON.stringify({ message, sha: f.sha }),
+  });
+}
+
+/* ── status helper ── */
+function say(msg, cls) { $("status").textContent = msg; $("status").className = cls || ""; }
+function busy(b) { $("b-publish").disabled = b; }
 
 /* ── gate ── */
 async function loadConfig() {
@@ -252,7 +337,6 @@ function setupMode(on) {
   $("g-reset").style.display = on ? "none" : "inline";
 }
 $("g-reset").onclick = () => setupMode(true);
-
 $("gate-form").onsubmit = async (e) => {
   e.preventDefault();
   const pass = $("g-pass").value;
@@ -260,12 +344,12 @@ $("gate-form").onsubmit = async (e) => {
   $("g-err").textContent = "";
   $("g-btn").disabled = true;
   try {
-    if (newTok) {                      // setup / rotate
+    if (newTok) {
       token = newTok;
-      const who = await gh("");        // validates token against this repo
+      const who = await gh("");
       if (!who || !who.permissions || !who.permissions.push) throw new Error("That token can't write to " + REPO);
       const cfg = await encryptToken(pass, newTok);
-      await putFile(CONFIG_PATH, JSON.stringify(cfg, null, 2), "writer: update credentials", configSha);
+      await putText(CONFIG_PATH, JSON.stringify(cfg, null, 2), "writer: update credentials", configSha);
       config = cfg;
     } else {
       if (!config) { setupMode(true); throw new Error("No setup found yet — paste a token below once."); }
@@ -273,105 +357,336 @@ $("gate-form").onsubmit = async (e) => {
     }
     localStorage.setItem(LS_KEY, pass);
     enterApp();
-  } catch (err) {
-    token = null;
-    $("g-err").textContent = err.message;
-  }
+  } catch (err) { token = null; $("g-err").textContent = err.message; }
   $("g-btn").disabled = false;
 };
 
-/* ── app ── */
-async function enterApp() {
-  $("gate").style.display = "none";
-  $("app").classList.add("on");
-  await refreshList();
-  const want = new URLSearchParams(location.search).get("note");
-  if (want && notes.includes(want)) openNote(want);
-}
-const closedFolders = new Set();
+/* ── tree data ── */
+const closedFolders = new Set(JSON.parse(localStorage.getItem(LS_CLOSED) || "[]"));
+const saveClosed = () => localStorage.setItem(LS_CLOSED, JSON.stringify([...closedFolders]));
 
-async function refreshList() {
+async function refreshTree() {
   const t = await gh("/git/trees/main?recursive=1");
-  const entries = t.tree || [];
-  notes = entries
-    .filter((x) => x.type === "blob" && x.path.startsWith("notes/") && x.path.endsWith(".md"))
-    .map((x) => x.path.slice("notes/".length));
+  const entries = (t && t.tree) || [];
+  allFiles = entries.filter((x) => x.type === "blob" && x.path.startsWith("notes/"))
+    .map((x) => x.path.slice(6));
+  notes = allFiles.filter((p) => p.endsWith(".md"));
+  treeFolders = entries.filter((x) => x.type === "tree" && x.path.startsWith("notes/"))
+    .map((x) => x.path.slice(6));
+  renderTree();
+}
 
+function buildTree() {
   const root = { folders: {}, notes: [] };
-  const mkFolder = (parts) => {
+  const mk = (parts) => {
     let node = root;
-    for (const seg of parts) {
-      node.folders[seg] ??= { folders: {}, notes: [] };
-      node = node.folders[seg];
-    }
+    for (const seg of parts) { node.folders[seg] ??= { folders: {}, notes: [] }; node = node.folders[seg]; }
     return node;
   };
-  // folders straight from git, so empty ones (holding only .gitkeep) show too
-  for (const x of entries) {
-    if (x.type === "tree" && x.path.startsWith("notes/")) mkFolder(x.path.slice("notes/".length).split("/"));
-  }
+  for (const f of treeFolders) mk(f.split("/"));
   for (const p of notes) {
-    const parts = p.split("/");
-    const file = parts.pop();
-    mkFolder(parts).notes.push({ file, path: p });
+    const parts = p.split("/"); const file = parts.pop();
+    mk(parts).notes.push({ file, path: p });
   }
-
-  const ul = $("note-list");
-  ul.innerHTML = "";
-  renderBranch(root, ul, "");
+  return root;
 }
 
-function renderBranch(node, ul, prefix) {
-  const cmp = (a, b) => a.localeCompare(b, undefined, { sensitivity: "base" });
+/* ── tree rendering ── */
+function renderTree() {
+  const tree = $("tree");
+  tree.innerHTML = "";
+  renderBranch(buildTree(), tree, "");
+}
+const cmp = (a, b) => a.localeCompare(b, undefined, { sensitivity: "base", numeric: true });
+
+function renderBranch(node, container, prefix) {
   for (const name of Object.keys(node.folders).sort(cmp)) {
     const path = prefix ? prefix + "/" + name : name;
-    const li = document.createElement("li");
-    li.className = "folder" + (closedFolders.has(path) ? " closed" : "");
     const row = document.createElement("div");
-    row.className = "frow";
-    const arrow = document.createElement("span");
-    arrow.className = "arrow"; arrow.textContent = "▾";
-    row.appendChild(arrow);
-    row.appendChild(document.createTextNode(name));
+    row.className = "row folder" + (closedFolders.has(path) ? " closed" : "");
+    row.dataset.path = path;
+    row.draggable = true;
+    row.innerHTML = '<span class="chev">' + CHEV + '</span><span class="nm"></span>';
+    row.querySelector(".nm").textContent = name;
     row.onclick = () => {
-      li.classList.toggle("closed");
-      li.classList.contains("closed") ? closedFolders.add(path) : closedFolders.delete(path);
-      $("f-folder").value = path;   // clicked folder becomes the target for new notes
+      row.classList.toggle("closed");
+      row.classList.contains("closed") ? closedFolders.add(path) : closedFolders.delete(path);
+      saveClosed();
     };
-    li.appendChild(row);
-    const sub = document.createElement("ul");
-    renderBranch(node.folders[name], sub, path);
-    li.appendChild(sub);
-    ul.appendChild(li);
+    row.oncontextmenu = (e) => ctxMenu(e, "folder", path);
+    dragSetup(row, "folder", path);
+    container.appendChild(row);
+    const kids = document.createElement("div");
+    kids.className = "children";
+    renderBranch(node.folders[name], kids, path);
+    container.appendChild(kids);
   }
   node.notes.sort((a, b) => cmp(a.file, b.file));
   for (const n of node.notes) {
-    const li = document.createElement("li");
-    li.className = "note";
-    li.textContent = n.file.replace(/\.md$/, "");
-    if (n.path === current) li.classList.add("active");
-    li.onclick = () => confirmLose() && openNote(n.path);
-    ul.appendChild(li);
+    const row = document.createElement("div");
+    row.className = "row note" + (n.path === current ? " active" : "");
+    row.dataset.path = n.path;
+    row.draggable = true;
+    row.innerHTML = '<span class="nm"></span>';
+    row.querySelector(".nm").textContent = n.file.replace(/\.md$/, "");
+    row.onclick = () => confirmLose() && openNote(n.path);
+    row.oncontextmenu = (e) => ctxMenu(e, "note", n.path);
+    dragSetup(row, "note", n.path);
+    container.appendChild(row);
   }
 }
-function confirmLose() {
-  return !dirty || confirm("Discard unpublished changes?");
+
+/* ── drag & drop ── */
+let dragged = null; // {kind, path}
+function dragSetup(row, kind, path) {
+  row.addEventListener("dragstart", (e) => {
+    dragged = { kind, path };
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", path);
+  });
+  if (kind === "folder") {
+    row.addEventListener("dragover", (e) => {
+      if (!dragged || !dropAllowed(path)) return;
+      e.preventDefault(); row.classList.add("drop");
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("drop"));
+    row.addEventListener("drop", (e) => {
+      e.preventDefault(); e.stopPropagation(); row.classList.remove("drop");
+      if (dragged && dropAllowed(path)) doMove(dragged, path);
+    });
+  }
 }
-function markDirty(d) {
-  dirty = d;
-  $("status").textContent = d ? "unpublished changes" : "";
-  $("status").className = "";
+function dropAllowed(target) {
+  if (!dragged) return false;
+  const p = dragged.path;
+  if (dragged.kind === "folder") {
+    if (target === p || target.startsWith(p + "/")) return false;      // into itself
+    if (p.slice(0, p.lastIndexOf("/")) === target) return false;      // no-op
+  } else {
+    const dir = p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "";
+    if (dir === target) return false;
+  }
+  return true;
 }
+// root drop: the tree background moves things to top level
+$("tree").addEventListener("dragover", (e) => {
+  if (!dragged) return;
+  const p = dragged.path;
+  const dir = p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "";
+  if (dir === "") return;
+  e.preventDefault(); $("tree").classList.add("droot");
+});
+$("tree").addEventListener("dragleave", (e) => {
+  if (e.target === $("tree")) $("tree").classList.remove("droot");
+});
+$("tree").addEventListener("drop", (e) => {
+  e.preventDefault(); $("tree").classList.remove("droot");
+  if (!dragged) return;
+  const p = dragged.path;
+  const dir = p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "";
+  if (dir !== "") doMove(dragged, "");
+});
+document.addEventListener("dragend", () => {
+  dragged = null;
+  $("tree").classList.remove("droot");
+  document.querySelectorAll(".row.drop").forEach((r) => r.classList.remove("drop"));
+});
+
+async function doMove(item, targetFolder) {
+  busy(true);
+  try {
+    if (item.kind === "note") {
+      const file = item.path.split("/").pop();
+      const dest = (targetFolder ? targetFolder + "/" : "") + file;
+      if (notes.includes(dest)) throw new Error("A note with that name is already there.");
+      say("moving…");
+      await moveFile("notes/" + item.path, "notes/" + dest, "note: move " + file);
+      if (current === item.path) { current = dest; setCrumb(); }
+    } else {
+      const base = item.path.split("/").pop();
+      const destBase = (targetFolder ? targetFolder + "/" : "") + base;
+      if (treeFolders.includes(destBase)) throw new Error("A folder with that name is already there.");
+      const inside = allFiles.filter((f) => f.startsWith(item.path + "/"));
+      let i = 0;
+      for (const f of inside) {
+        say("moving… " + (++i) + "/" + inside.length);
+        await moveFile("notes/" + f, "notes/" + destBase + f.slice(item.path.length), "folder: move " + base);
+        if (current === f) current = destBase + f.slice(item.path.length);
+      }
+      if (!inside.length) { // empty folder: move its marker
+        await putText("notes/" + destBase + "/.gitkeep", "", "folder: move " + base);
+        await delFile("notes/" + item.path + "/.gitkeep", "folder: move " + base).catch(() => {});
+      }
+      setCrumb();
+    }
+    say("moved — site updates in ~1 min", "ok");
+    await refreshTree();
+  } catch (err) { say(err.message, "err"); }
+  busy(false);
+}
+
+/* ── context menu ── */
+const ctx = $("ctx");
+function ctxMenu(e, kind, path) {
+  e.preventDefault(); e.stopPropagation();
+  const items = [];
+  if (kind === "folder") {
+    items.push(["New note", () => newDraft(path)]);
+    items.push(["New folder", () => inlineNewFolder(path)]);
+    items.push(["hr"]);
+    items.push(["Rename…", () => inlineRename(kind, path)]);
+    items.push(["Delete", () => removeItem(kind, path), "danger"]);
+  } else if (kind === "note") {
+    items.push(["Rename…", () => inlineRename(kind, path)]);
+    items.push(["Delete", () => removeItem(kind, path), "danger"]);
+  } else {
+    items.push(["New note", () => newDraft("")]);
+    items.push(["New folder", () => inlineNewFolder("")]);
+  }
+  ctx.innerHTML = "";
+  for (const it of items) {
+    if (it[0] === "hr") { const d = document.createElement("div"); d.className = "hr"; ctx.appendChild(d); continue; }
+    const mi = document.createElement("div");
+    mi.className = "mi" + (it[2] ? " " + it[2] : "");
+    mi.textContent = it[0];
+    mi.onclick = () => { hideCtx(); it[1](); };
+    ctx.appendChild(mi);
+  }
+  ctx.style.display = "block";
+  const x = Math.min(e.clientX, innerWidth - ctx.offsetWidth - 8);
+  const y = Math.min(e.clientY, innerHeight - ctx.offsetHeight - 8);
+  ctx.style.left = x + "px"; ctx.style.top = y + "px";
+}
+const hideCtx = () => { ctx.style.display = "none"; };
+document.addEventListener("click", hideCtx);
+$("tree").addEventListener("contextmenu", (e) => { if (e.target === $("tree")) ctxMenu(e, "root", ""); });
+
+/* ── inline rename / create ── */
+const sanitizeName = (s) => s.replace(/[\/\\:*?"<>|#^\[\]]/g, "-").replace(/\s+/g, " ").trim();
+
+function rowFor(path) {
+  return [...document.querySelectorAll(".row")].find((r) => r.dataset.path === path);
+}
+function inlineEdit(row, initial, onCommit) {
+  const nm = row.querySelector(".nm");
+  const input = document.createElement("input");
+  input.className = "rn"; input.value = initial;
+  nm.replaceWith(input);
+  input.focus(); input.select();
+  let done = false;
+  const finish = (commit) => {
+    if (done) return; done = true;
+    const v = sanitizeName(input.value);
+    renderTree();
+    if (commit && v && v !== initial) onCommit(v);
+  };
+  input.onkeydown = (e) => {
+    if (e.key === "Enter") finish(true);
+    if (e.key === "Escape") finish(false);
+  };
+  input.onblur = () => finish(true);
+  input.onclick = (e) => e.stopPropagation();
+}
+function inlineRename(kind, path) {
+  const row = rowFor(path);
+  if (!row) return;
+  const old = path.split("/").pop().replace(/\.md$/, "");
+  inlineEdit(row, old, async (name) => {
+    busy(true);
+    try {
+      const dir = path.includes("/") ? path.slice(0, path.lastIndexOf("/") + 1) : "";
+      if (kind === "note") {
+        const dest = dir + name + ".md";
+        if (notes.includes(dest)) throw new Error("That name is taken.");
+        say("renaming…");
+        await moveFile("notes/" + path, "notes/" + dest, "note: rename to " + name);
+        if (current === path) { current = dest; $("f-title").value = name; setCrumb(); }
+      } else {
+        const dest = dir + name;
+        if (treeFolders.includes(dest)) throw new Error("That name is taken.");
+        const inside = allFiles.filter((f) => f.startsWith(path + "/"));
+        let i = 0;
+        for (const f of inside) {
+          say("renaming… " + (++i) + "/" + inside.length);
+          await moveFile("notes/" + f, "notes/" + dest + f.slice(path.length), "folder: rename " + name);
+          if (current === f) current = dest + f.slice(path.length);
+        }
+        if (!inside.length) {
+          await putText("notes/" + dest + "/.gitkeep", "", "folder: rename " + name);
+          await delFile("notes/" + path + "/.gitkeep", "folder: rename " + name).catch(() => {});
+        }
+        setCrumb();
+      }
+      say("renamed — site updates in ~1 min", "ok");
+      await refreshTree();
+    } catch (err) { say(err.message, "err"); await refreshTree(); }
+    busy(false);
+  });
+}
+function inlineNewFolder(parent) {
+  // temporary row at the right depth, committed on Enter
+  closedFolders.delete(parent); saveClosed(); renderTree();
+  const container = parent
+    ? rowFor(parent).nextElementSibling             // its .children div
+    : $("tree");
+  const row = document.createElement("div");
+  row.className = "row folder";
+  row.innerHTML = '<span class="chev">' + CHEV + '</span><span class="nm"></span>';
+  container.prepend(row);
+  inlineEdit(row, "", async (name) => {
+    const path = (parent ? parent + "/" : "") + name;
+    busy(true);
+    try {
+      if (treeFolders.includes(path)) throw new Error("That folder already exists.");
+      say("creating folder…");
+      await putText("notes/" + path + "/.gitkeep", "", "folder: " + path);
+      say("folder created", "ok");
+      await refreshTree();
+    } catch (err) { say(err.message, "err"); }
+    busy(false);
+  });
+}
+
+/* ── delete ── */
+async function removeItem(kind, path) {
+  busy(true);
+  try {
+    if (kind === "note") {
+      if (!confirm('Delete "' + path.split("/").pop().replace(/\.md$/, "") + '"?')) { busy(false); return; }
+      say("deleting…");
+      await delFile("notes/" + path, "note: delete " + path);
+      if (current === path) newDraft(path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "");
+    } else {
+      const inside = allFiles.filter((f) => f.startsWith(path + "/"));
+      const n = inside.filter((f) => f.endsWith(".md")).length;
+      if (!confirm('Delete folder "' + path + '"' + (n ? " and the " + n + " note(s) inside" : "") + "?")) { busy(false); return; }
+      let i = 0;
+      for (const f of inside) {
+        say("deleting… " + (++i) + "/" + inside.length);
+        await delFile("notes/" + f, "folder: delete " + path);
+        if (current === f) newDraft("");
+      }
+      if (!inside.length) await delFile("notes/" + path + "/.gitkeep", "folder: delete " + path).catch(() => {});
+    }
+    say("deleted — site updates in ~1 min", "ok");
+    await refreshTree();
+  } catch (err) { say(err.message, "err"); }
+  busy(false);
+}
+
+/* ── editor ── */
+function confirmLose() { return !dirty || confirm("Discard unpublished changes?"); }
+function markDirty(d) { dirty = d; if (d) say("unpublished changes"); else if ($("status").className === "") say(""); }
 for (const id of ["f-title", "f-summary", "f-body"]) $(id).oninput = () => markDirty(true);
 window.onbeforeunload = () => (dirty ? true : undefined);
-
-let currentDate = "";     // date front matter of the open note, kept on republish
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); if ($("app").classList.contains("on")) publish(); }
+});
 
 const today = () => {
   const n = new Date();
   return n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0") + "-" + String(n.getDate()).padStart(2, "0");
 };
-
 function parseNote(raw) {
   const m = raw.match(/^---\n([\s\S]*?)\n---\n?/);
   let summary = "", date = "", body = raw;
@@ -390,107 +705,85 @@ function composeNote() {
   if (sum) fm += 'summary: "' + sum.replace(/"/g, "'") + '"\n';
   return fm + "---\n\n" + $("f-body").value.replace(/\s*$/, "") + "\n";
 }
+function setCrumb() {
+  const c = $("crumb");
+  c.innerHTML = "";
+  const segs = current ? current.replace(/\.md$/, "").split("/")
+    : (draftFolder ? draftFolder.split("/").concat("new note") : ["new note"]);
+  segs.forEach((s, i) => {
+    if (i) { const sep = document.createElement("span"); sep.className = "sep"; sep.textContent = "›"; c.appendChild(sep); }
+    c.appendChild(document.createTextNode(s));
+  });
+}
 async function openNote(path) {
   const f = await gh(notePath(path));
-  if (!f) return;
+  if (!f) { say("couldn't open " + path, "err"); return; }
   const { summary, date, body } = parseNote(b64ToUtf8(f.content));
   current = path; currentSha = f.sha; currentDate = date;
-  $("f-name").textContent = path;
-  $("f-folder").value = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
   $("f-title").value = path.split("/").pop().replace(/\.md$/, "");
   $("f-summary").value = summary; $("f-body").value = body;
-  markDirty(false);
-  refreshList();
+  markDirty(false); say("");
+  setCrumb(); renderTree();
 }
-$("b-newfolder").onclick = async () => {
-  const base = cleanFolder();
-  const input = prompt(
-    "New folder path (use / for subfolders):",
-    base ? base + "/" : ""
-  );
-  if (input == null) return;
-  const folder = input.split("/").map(sanitizeName).filter(Boolean).join("/");
-  if (!folder) return;
-  try {
-    // git can't hold an empty directory, so a hidden placeholder file marks it
-    await putFile("notes/" + folder + "/.gitkeep", "", "folder: " + folder);
-    $("f-folder").value = folder;
-    $("status").textContent = "folder created — new notes go in it"; $("status").className = "ok";
-    refreshList();
-  } catch (err) {
-    $("status").textContent = err.message; $("status").className = "err";
-  }
-};
-$("b-new").onclick = () => {
+function newDraft(folder) {
   if (!confirmLose()) return;
-  current = null; currentSha = null; currentDate = "";
-  $("f-name").textContent = "new note";
+  current = null; currentSha = null; currentDate = ""; draftFolder = folder || "";
   $("f-title").value = ""; $("f-summary").value = ""; $("f-body").value = "";
-  markDirty(false);
-  refreshList();
+  markDirty(false); say("");
+  setCrumb(); renderTree();
   $("f-title").focus();
-};
-// Obsidian-style: names keep their case and spaces; only path-breaking chars go.
-const sanitizeName = (s) => s.replace(/[\/\\:*?"<>|#^\[\]]/g, "-").replace(/\s+/g, " ").trim();
-function cleanFolder() {
-  return $("f-folder").value.split("/").map(sanitizeName).filter(Boolean).join("/");
 }
-$("b-save").onclick = async () => {
-  $("b-save").disabled = true;
-  $("status").textContent = "publishing…"; $("status").className = "";
+$("i-newnote").onclick = () => newDraft(draftFolder);
+$("i-newfolder").onclick = () => inlineNewFolder("");
+
+async function publish() {
+  busy(true);
   try {
-    const folder = cleanFolder();
     const name = sanitizeName($("f-title").value) || "Untitled";
-    $("f-folder").value = folder;
     $("f-title").value = name;
-    const target = (folder ? folder + "/" : "") + name + ".md";
-
-    if (current && target !== current) {   // renamed and/or moved: write new path, remove old
-      const moved = await putFile("notes/" + target, composeNote(), "note: " + name + " (moved)");
-      await gh(notePath(current), {
-        method: "DELETE",
-        body: JSON.stringify({ message: "note: move cleanup " + current, sha: currentSha }),
-      });
-      current = target; currentSha = moved.content.sha;
-      $("f-name").textContent = current;
-      markDirty(false);
-      $("status").textContent = "moved & published — live in ~1 min"; $("status").className = "ok";
-      refreshList();
-      $("b-save").disabled = false;
-      return;
+    say("publishing…");
+    if (!current) {
+      const dest = (draftFolder ? draftFolder + "/" : "") + name + ".md";
+      if (notes.includes(dest)) throw new Error("A note with that name already exists there.");
+      const res = await putText("notes/" + dest, composeNote(), "note: " + name);
+      current = dest; currentSha = res.content.sha;
+    } else {
+      const dir = current.includes("/") ? current.slice(0, current.lastIndexOf("/") + 1) : "";
+      const dest = dir + name + ".md";
+      if (dest !== current) {          // renamed via the title field
+        if (notes.includes(dest)) throw new Error("That name is taken.");
+        const res = await putText("notes/" + dest, composeNote(), "note: " + name);
+        await gh(notePath(current), {
+          method: "DELETE", body: JSON.stringify({ message: "note: rename cleanup", sha: currentSha }),
+        });
+        current = dest; currentSha = res.content.sha;
+      } else {
+        const res = await putText("notes/" + current, composeNote(), "note: " + name, currentSha);
+        currentSha = res.content.sha;
+      }
     }
-
-    current = current || target;
-    const res = await putFile("notes/" + current, composeNote(), "note: " + name, currentSha);
-    currentSha = res.content.sha;
-    $("f-name").textContent = current;
     markDirty(false);
-    $("status").textContent = "published — live in ~1 min"; $("status").className = "ok";
-    refreshList();
-  } catch (err) {
-    $("status").textContent = err.message; $("status").className = "err";
-  }
-  $("b-save").disabled = false;
-};
-$("b-delete").onclick = async () => {
-  if (!current) return;
-  if (!confirm("Delete " + current + " for good?")) return;
-  await gh(notePath(current), {
-    method: "DELETE",
-    body: JSON.stringify({ message: "delete: " + current, sha: currentSha }),
-  });
-  $("b-new").onclick();
-};
-$("b-logout").onclick = () => {
-  localStorage.removeItem(LS_KEY);
-  token = null;
-  location.reload();
-};
+    say("published — live in ~1 min", "ok");
+    setCrumb();
+    await refreshTree();
+  } catch (err) { say(err.message, "err"); }
+  busy(false);
+}
+$("b-publish").onclick = publish;
+$("b-logout").onclick = () => { localStorage.removeItem(LS_KEY); token = null; location.reload(); };
 
 /* ── boot ── */
+async function enterApp() {
+  $("gate").style.display = "none";
+  $("app").classList.add("on");
+  setCrumb();
+  await refreshTree();
+  const want = new URLSearchParams(location.search).get("note");
+  if (want && notes.includes(want)) openNote(want);
+}
 (async () => {
   try { await loadConfig(); } catch (e) { $("g-err").textContent = e.message; }
-  if (!config) { setupMode(false); setupMode(true); $("g-hint").textContent = "one-time setup on first use"; return; }
+  if (!config) { setupMode(true); $("g-hint").textContent = "one-time setup on first use"; return; }
   const saved = localStorage.getItem(LS_KEY);
   if (saved) {
     try { token = await decryptToken(saved, config); enterApp(); return; } catch (e) { localStorage.removeItem(LS_KEY); }
