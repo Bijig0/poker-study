@@ -1,0 +1,12 @@
+---
+layout: layout.njk
+---
+<ol class="note-list" reversed>
+  {%- for note in collections.note | reverse %}
+  <li class="note-card">
+    <time datetime="{{ note.date.toISOString() }}">{{ note.date | readableDate }}</time>
+    <a href="{{ note.url }}">{{ note.data.title }}</a>
+    {%- if note.data.summary %}<p class="summary">{{ note.data.summary }}</p>{%- endif %}
+  </li>
+  {%- endfor %}
+</ol>

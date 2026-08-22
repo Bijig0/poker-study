@@ -1,0 +1,18 @@
+#!/bin/sh
+# Start a new note: ./note "BB defense vs BTN 2.5x"
+# Creates notes/YYYY-MM-DD-slug.md and opens it in your editor.
+set -e
+cd "$(dirname "$0")"
+if [ -z "$1" ]; then
+  echo "Usage: ./note \"Title of the note\"" >&2
+  exit 1
+fi
+slug=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9]/-/g' -e 's/--*/-/g' -e 's/^-//' -e 's/-$//')
+file="notes/$(date +%F)-${slug}.md"
+if [ -e "$file" ]; then
+  echo "$file already exists, opening it."
+else
+  printf -- '---\ntitle: "%s"\nsummary: ""\n---\n\n' "$1" > "$file"
+fi
+"${EDITOR:-open -t}" "$file" 2>/dev/null || open -t "$file"
+echo "$file"

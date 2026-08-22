@@ -1,0 +1,247 @@
+/* ── Card-room journal ─────────────────────────────────────────────
+   Cream paper, felt green, oxblood. Fraunces display, Newsreader body,
+   JetBrains Mono for ranges & numbers. */
+
+:root {
+  --paper: #f6f0e1;
+  --paper-deep: #eee5cf;
+  --ink: #22301f;
+  --ink-soft: #5c6653;
+  --felt: #1e6b4e;
+  --oxblood: #8e2f2f;
+  --gold: #b98a2f;
+  --rule: #d8ccae;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 500px at 50% -10%, #fdf8ea 0%, transparent 70%),
+    var(--paper);
+  color: var(--ink);
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 1.125rem;
+  line-height: 1.65;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  width: min(46rem, calc(100% - 2.5rem));
+  margin: 0 auto;
+  flex: 1;
+}
+
+/* ── Masthead ── */
+.masthead {
+  text-align: center;
+  padding: 3.5rem 1rem 2.25rem;
+  border-bottom: 3px double var(--rule);
+  margin-bottom: 2.5rem;
+}
+
+.masthead-title {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 800;
+  font-size: clamp(2.4rem, 7vw, 3.6rem);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-decoration: none;
+  display: inline-block;
+  line-height: 1.05;
+}
+
+.masthead-title:hover { color: var(--felt); }
+
+.suits {
+  display: block;
+  font-size: 0.42em;
+  letter-spacing: 0.6em;
+  margin-bottom: 0.5em;
+  color: var(--oxblood);
+}
+
+.masthead-sub {
+  margin: 0.75rem 0 0;
+  font-style: italic;
+  color: var(--ink-soft);
+  font-size: 1rem;
+}
+
+/* ── Index ── */
+.note-list {
+  list-style: none;
+  margin: 0 0 3rem;
+  padding: 0;
+}
+
+.note-card {
+  padding: 1.4rem 0.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.note-card time {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--felt);
+  margin-bottom: 0.35rem;
+}
+
+.note-card a {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  font-size: 1.45rem;
+  line-height: 1.25;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.note-card a:hover {
+  color: var(--oxblood);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.note-card .summary {
+  margin: 0.4rem 0 0;
+  color: var(--ink-soft);
+  font-size: 1rem;
+}
+
+/* ── Note page ── */
+.note-header {
+  margin-bottom: 2rem;
+}
+
+.note-header time {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--felt);
+}
+
+.note-header h1 {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 700;
+  font-size: clamp(1.9rem, 5vw, 2.6rem);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin: 0.4rem 0 0;
+}
+
+.prose h2, .prose h3 {
+  font-family: "Fraunces", Georgia, serif;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 2.2rem 0 0.6rem;
+}
+
+.prose h2 { font-size: 1.55rem; }
+.prose h3 { font-size: 1.25rem; }
+
+.prose a { color: var(--felt); text-underline-offset: 3px; }
+.prose a:hover { color: var(--oxblood); }
+
+.prose blockquote {
+  margin: 1.5rem 0;
+  padding: 0.2rem 1.25rem;
+  border-left: 3px solid var(--gold);
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.prose code {
+  font-family: var(--mono);
+  font-size: 0.82em;
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+
+.prose pre {
+  background: #1c2a22;
+  color: #e8e2cd;
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+  overflow-x: auto;
+  line-height: 1.55;
+}
+
+.prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.prose table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5rem 0;
+  font-size: 0.95rem;
+}
+
+.prose th, .prose td {
+  border: 1px solid var(--rule);
+  padding: 0.45rem 0.7rem;
+  text-align: left;
+}
+
+.prose th {
+  background: var(--paper-deep);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.prose hr {
+  border: none;
+  text-align: center;
+  margin: 2.5rem 0;
+}
+
+.prose hr::after {
+  content: "♠ ♥ ♦ ♣";
+  color: var(--rule);
+  letter-spacing: 0.8em;
+  font-size: 0.9rem;
+}
+
+.prose img { max-width: 100%; height: auto; border-radius: 6px; }
+
+.backlink { margin: 3rem 0; }
+
+.backlink a {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--felt);
+  text-decoration: none;
+}
+
+.backlink a:hover { color: var(--oxblood); }
+
+/* ── Footer ── */
+.colophon {
+  text-align: center;
+  padding: 2rem 1rem 2.5rem;
+  color: var(--ink-soft);
+  font-style: italic;
+  font-size: 0.9rem;
+  border-top: 3px double var(--rule);
+  margin-top: 3rem;
+}
+
+.colophon span { color: var(--oxblood); font-style: normal; }
