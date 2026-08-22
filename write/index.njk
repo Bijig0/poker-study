@@ -311,7 +311,8 @@ const putText = (path, str, message, sha) => putRaw(path, utf8ToB64(str), messag
 // changes: [{path, content}] to write, [{path}] to delete, [{path, sha}] to copy an existing blob.
 async function commitChanges(changes, message, attempt = 0) {
   try {
-    const ref = await gh("/git/ref/heads/main");
+    // cache-busted: a stale head sha here makes the ref update non-fast-forward
+    const ref = await gh("/git/ref/heads/main?r=" + Math.random().toString(36).slice(2));
     const head = ref.object.sha;
     const base = (await gh("/git/commits/" + head)).tree.sha;
     const tree = await gh("/git/trees", { method: "POST", body: JSON.stringify({
