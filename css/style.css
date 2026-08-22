@@ -74,6 +74,25 @@ main {
   font-size: 1rem;
 }
 
+.masthead-actions { margin: 1rem 0 0; }
+
+.write-link {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--felt);
+  border-radius: 999px;
+  padding: 0.45em 1.1em;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.write-link:hover { background: var(--oxblood); }
+
+.backlink .sep { color: var(--rule); margin: 0 0.5em; }
+
 /* ── Index ── */
 .note-list {
   list-style: none;

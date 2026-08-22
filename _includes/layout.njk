@@ -18,6 +18,7 @@
       Poker Study
     </a>
     <p class="masthead-sub">a running study journal</p>
+    <p class="masthead-actions"><a id="new-note" class="write-link" href="https://github.com/Bijig0/poker-study/new/main/notes">✎ new note</a></p>
   </header>
   <main>
     {{ content | safe }}
@@ -25,5 +26,14 @@
   <footer class="colophon">
     <span aria-hidden="true">♦</span> updated whenever the ranges change <span aria-hidden="true">♦</span>
   </footer>
+  <script>
+    // "New note" opens GitHub's web editor with today's filename + front matter prefilled.
+    const d = new Date().toISOString().slice(0, 10);
+    const tmpl = '---\ntitle: "Untitled"\nsummary: ""\n---\n\n';
+    document.getElementById("new-note").href =
+      "https://github.com/Bijig0/poker-study/new/main/notes" +
+      "?filename=" + d + "-untitled.md" +
+      "&value=" + encodeURIComponent(tmpl);
+  </script>
 </body>
 </html>

@@ -9,5 +9,9 @@ layout: layout.njk
   <div class="prose">
     {{ content | safe }}
   </div>
-  <p class="backlink"><a href="/">← all notes</a></p>
+  <p class="backlink">
+    <a href="/">← all notes</a>
+    <span class="sep">·</span>
+    <a href="https://github.com/Bijig0/poker-study/edit/main/{{ page.inputPath | replace("./", "") }}">edit this note ✎</a>
+  </p>
 </article>

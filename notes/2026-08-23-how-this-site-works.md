@@ -3,27 +3,26 @@ title: "How this site works"
 summary: "Write markdown in notes/, run ./sync, read it anywhere."
 ---
 
-This is the study journal. It lives at `~/Desktop/poker-study` on each laptop and publishes itself to GitHub Pages on every push.
+This is the study journal. Notes are markdown files in a GitHub repo, and the site republishes itself on every commit.
 
-## Daily workflow
+## Writing from any laptop (no setup)
 
-Start a note (creates the file and opens it):
+Click **✎ new note** at the top of the site. It opens GitHub's web editor, logged into your GitHub account, with today's filename and the front matter already filled in. Change `untitled` in the filename to a slug, write, hit **Commit changes** — the site updates in about a minute.
 
-```
-./note "SB vs BB single-raised pots"
-```
+Every note also has an **edit this note ✎** link at the bottom that opens that file in the same editor.
 
-When you're done writing (or whenever), publish:
+For longer sessions, press `.` while viewing the repo on github.com to get a full VS Code editor in the browser.
 
-```
-./sync
-```
+## Writing locally (optional)
 
-That pulls anything written on the other laptop, commits, pushes, and the site rebuilds itself in about a minute. On a new laptop, just:
+If a laptop has the repo cloned at `~/Desktop/poker-study`:
 
 ```
-git clone https://github.com/Bijig0/poker-study.git
+./note "SB vs BB single-raised pots"   # create + open a note
+./sync                                 # pull, commit, push
 ```
+
+On a new laptop: `git clone https://github.com/Bijig0/poker-study.git`
 
 ## Writing notes
 
