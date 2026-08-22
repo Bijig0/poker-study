@@ -10,6 +10,7 @@ This is the study journal — the notes mirror the old Obsidian setup: **the tit
 Click **✎ write** on the site, enter the password, and you're in:
 
 - **+ New note** starts a fresh note. The **in:** field sets its folder — type any path like `Poker/K72r btn vs bb` (a new path just creates the folder).
+- **+ Folder** creates a folder (subfolders via `/`, e.g. `Poker/Turn play`) without needing a note first. On the public site a folder shows up once it has a note in it.
 - Clicking a folder in the sidebar collapses/expands it *and* makes it the target folder for new notes.
 - Changing a note's **title or folder** and hitting Publish renames/moves it.
 - Publish makes it live on the site in about a minute, on every device.

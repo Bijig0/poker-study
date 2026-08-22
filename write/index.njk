@@ -95,6 +95,8 @@ eleventyExcludeFromCollections: true
     li.folder.closed > .frow .arrow { transform: rotate(-90deg); }
     li.folder.closed > ul { display: none; }
     .side-foot { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .side-actions { display: flex; gap: 0.5rem; }
+    .side-actions #b-new { flex: 1; }
 
     #editor { padding: 3rem clamp(1.25rem, 6vw, 4.5rem); max-width: 52rem; }
     #f-title {
@@ -153,7 +155,10 @@ eleventyExcludeFromCollections: true
 <div id="app">
   <aside>
     <h2 class="side-head"><a href="/">♠ Poker Study</a></h2>
-    <button id="b-new">+ New note</button>
+    <div class="side-actions">
+      <button id="b-new">+ New note</button>
+      <button class="ghost" id="b-newfolder">+ Folder</button>
+    </div>
     <ul id="note-list"></ul>
     <div class="side-foot">
       <button class="ghost" id="b-delete">Delete</button>
@@ -287,20 +292,28 @@ const closedFolders = new Set();
 
 async function refreshList() {
   const t = await gh("/git/trees/main?recursive=1");
-  notes = (t.tree || [])
+  const entries = t.tree || [];
+  notes = entries
     .filter((x) => x.type === "blob" && x.path.startsWith("notes/") && x.path.endsWith(".md"))
     .map((x) => x.path.slice("notes/".length));
 
   const root = { folders: {}, notes: [] };
-  for (const p of notes) {
-    const parts = p.split("/");
-    const file = parts.pop();
+  const mkFolder = (parts) => {
     let node = root;
     for (const seg of parts) {
       node.folders[seg] ??= { folders: {}, notes: [] };
       node = node.folders[seg];
     }
-    node.notes.push({ file, path: p });
+    return node;
+  };
+  // folders straight from git, so empty ones (holding only .gitkeep) show too
+  for (const x of entries) {
+    if (x.type === "tree" && x.path.startsWith("notes/")) mkFolder(x.path.slice("notes/".length).split("/"));
+  }
+  for (const p of notes) {
+    const parts = p.split("/");
+    const file = parts.pop();
+    mkFolder(parts).notes.push({ file, path: p });
   }
 
   const ul = $("note-list");
@@ -389,6 +402,25 @@ async function openNote(path) {
   markDirty(false);
   refreshList();
 }
+$("b-newfolder").onclick = async () => {
+  const base = cleanFolder();
+  const input = prompt(
+    "New folder path (use / for subfolders):",
+    base ? base + "/" : ""
+  );
+  if (input == null) return;
+  const folder = input.split("/").map(sanitizeName).filter(Boolean).join("/");
+  if (!folder) return;
+  try {
+    // git can't hold an empty directory, so a hidden placeholder file marks it
+    await putFile("notes/" + folder + "/.gitkeep", "", "folder: " + folder);
+    $("f-folder").value = folder;
+    $("status").textContent = "folder created — new notes go in it"; $("status").className = "ok";
+    refreshList();
+  } catch (err) {
+    $("status").textContent = err.message; $("status").className = "err";
+  }
+};
 $("b-new").onclick = () => {
   if (!confirmLose()) return;
   current = null; currentSha = null; currentDate = "";
