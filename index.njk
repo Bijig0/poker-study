@@ -1,12 +1,29 @@
 ---
 layout: layout.njk
 ---
-<ol class="note-list" reversed>
-  {%- for note in collections.note | reverse %}
+{% macro noteItem(note) %}
   <li class="note-card">
     <time datetime="{{ note.date.toISOString() }}">{{ note.date | readableDate }}</time>
     <a href="{{ note.url }}">{{ note.data.title }}</a>
     {%- if note.data.summary %}<p class="summary">{{ note.data.summary }}</p>{%- endif %}
   </li>
+{% endmacro %}
+
+{% macro branch(node) %}
+  {%- for name, child in node.folders %}
+  <details class="tree-folder" open>
+    <summary>{{ name }}</summary>
+    <div class="tree-body">{{ branch(child) }}</div>
+  </details>
   {%- endfor %}
-</ol>
+  {%- if node.notes.length %}
+  <ol class="note-list">
+    {%- for note in node.notes %}{{ noteItem(note) }}{%- endfor %}
+  </ol>
+  {%- endif %}
+{% endmacro %}
+
+{% set tree = collections.note | noteTree %}
+<div class="journal">
+  {{ branch(tree) }}
+</div>

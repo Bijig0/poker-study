@@ -75,14 +75,25 @@ eleventyExcludeFromCollections: true
     .side-head a { color: var(--ink); text-decoration: none; }
     .side-head a:hover { color: var(--oxblood); }
     #note-list { list-style: none; margin: 0.5rem 0; padding: 0; flex: 1; }
-    #note-list li {
+    #note-list ul { list-style: none; margin: 0; padding-left: 0.7rem; border-left: 1px solid var(--rule); }
+    #note-list li.note {
       padding: 0.45rem 0.55rem; border-radius: 6px; cursor: pointer;
       font-size: 0.92rem; line-height: 1.3;
     }
-    #note-list li:hover { background: #e4d9bd; }
-    #note-list li.active { background: var(--felt); color: var(--paper); }
-    #note-list li time { display: block; font-family: var(--mono); font-size: 0.62rem;
+    #note-list li.note:hover { background: #e4d9bd; }
+    #note-list li.note.active { background: var(--felt); color: var(--paper); }
+    #note-list li.note time { display: block; font-family: var(--mono); font-size: 0.62rem;
       letter-spacing: 0.1em; opacity: 0.75; }
+    .frow {
+      display: flex; gap: 0.4rem; align-items: baseline; cursor: pointer;
+      padding: 0.4rem 0.45rem; border-radius: 6px;
+      font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--ink-soft);
+    }
+    .frow:hover { color: var(--oxblood); }
+    .frow .arrow { transition: transform 0.15s ease; display: inline-block; color: var(--gold); }
+    li.folder.closed > .frow .arrow { transform: rotate(-90deg); }
+    li.folder.closed > ul { display: none; }
     .side-foot { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
     #editor { padding: 3rem clamp(1.25rem, 6vw, 4.5rem); max-width: 52rem; }
@@ -99,8 +110,15 @@ eleventyExcludeFromCollections: true
     .bar {
       display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2rem;
       font-family: var(--mono); font-size: 0.75rem; color: var(--ink-soft);
+      flex-wrap: wrap;
     }
     .bar .grow { flex: 1; }
+    #f-folder {
+      font-family: var(--mono); font-size: 0.75rem; color: var(--felt);
+      border: 1px dashed var(--rule); border-radius: 6px; padding: 0.3em 0.6em;
+      width: 14rem; background: #fbf7ec;
+    }
+    #f-folder:focus { border-color: var(--felt); border-style: solid; }
     #status { font-style: normal; }
     #status.ok { color: var(--felt); }
     #status.err { color: var(--oxblood); }
@@ -145,6 +163,8 @@ eleventyExcludeFromCollections: true
   <section id="editor">
     <div class="bar">
       <span id="f-name">new note</span>
+      <span>in:</span>
+      <input id="f-folder" placeholder="folder, e.g. preflop/3max" spellcheck="false">
       <span class="grow"></span>
       <span id="status"></span>
       <button id="b-save">Publish</button>
@@ -164,8 +184,8 @@ const LS_KEY = "poker-study-pass";
 let token = null;          // decrypted GitHub token
 let config = null;         // {salt, iv, ct} or null if not set up
 let configSha = null;
-let notes = [];            // [{name, sha}]
-let current = null;        // filename of open note, null = new
+let notes = [];            // paths relative to notes/, e.g. "preflop/3max/2026-08-23-x.md"
+let current = null;        // path of open note (relative to notes/), null = new
 let currentSha = null;
 let dirty = false;
 
@@ -199,6 +219,8 @@ async function decryptToken(pass, cfg) {
 const utf8ToB64 = (s) => btoa(unescape(encodeURIComponent(s)));
 const b64ToUtf8 = (s) => decodeURIComponent(escape(atob(s.replace(/\n/g, ""))));
 
+const notePath = (p) => "/contents/notes/" + p.split("/").map(encodeURIComponent).join("/");
+
 async function gh(path, opts = {}) {
   const headers = { Accept: "application/vnd.github+json", ...(opts.headers || {}) };
   if (token) headers.Authorization = "Bearer " + token;
@@ -210,7 +232,8 @@ async function gh(path, opts = {}) {
 async function putFile(path, contentStr, message, sha) {
   const body = { message, content: utf8ToB64(contentStr) };
   if (sha) body.sha = sha;
-  return gh("/contents/" + path, { method: "PUT", body: JSON.stringify(body) });
+  return gh("/contents/" + path.split("/").map(encodeURIComponent).join("/"),
+    { method: "PUT", body: JSON.stringify(body) });
 }
 
 /* ── gate ── */
@@ -258,20 +281,63 @@ async function enterApp() {
   $("app").classList.add("on");
   await refreshList();
   const want = new URLSearchParams(location.search).get("note");
-  if (want && notes.some((n) => n.name === want)) openNote(want);
+  if (want && notes.includes(want)) openNote(want);
 }
+const closedFolders = new Set();
+
 async function refreshList() {
-  const files = (await gh("/contents/notes")) || [];
-  notes = files.filter((f) => f.name.endsWith(".md")).sort((a, b) => b.name.localeCompare(a.name));
+  const t = await gh("/git/trees/main?recursive=1");
+  notes = (t.tree || [])
+    .filter((x) => x.type === "blob" && x.path.startsWith("notes/") && x.path.endsWith(".md"))
+    .map((x) => x.path.slice("notes/".length));
+
+  const root = { folders: {}, notes: [] };
+  for (const p of notes) {
+    const parts = p.split("/");
+    const file = parts.pop();
+    let node = root;
+    for (const seg of parts) {
+      node.folders[seg] ??= { folders: {}, notes: [] };
+      node = node.folders[seg];
+    }
+    node.notes.push({ file, path: p });
+  }
+
   const ul = $("note-list");
   ul.innerHTML = "";
-  for (const n of notes) {
+  renderBranch(root, ul, "");
+}
+
+function renderBranch(node, ul, prefix) {
+  const cmp = (a, b) => a.localeCompare(b, undefined, { sensitivity: "base" });
+  for (const name of Object.keys(node.folders).sort(cmp)) {
+    const path = prefix ? prefix + "/" + name : name;
     const li = document.createElement("li");
-    const m = n.name.match(/^(\d{4}-\d{2}-\d{2})-(.*)\.md$/) || [null, "", n.name];
-    li.innerHTML = "<time>" + m[1] + "</time>" + m[2].replace(/-/g, " ");
-    li.dataset.name = n.name;
-    if (n.name === current) li.classList.add("active");
-    li.onclick = () => confirmLose() && openNote(n.name);
+    li.className = "folder" + (closedFolders.has(path) ? " closed" : "");
+    const row = document.createElement("div");
+    row.className = "frow";
+    const arrow = document.createElement("span");
+    arrow.className = "arrow"; arrow.textContent = "▾";
+    row.appendChild(arrow);
+    row.appendChild(document.createTextNode(name));
+    row.onclick = () => {
+      li.classList.toggle("closed");
+      li.classList.contains("closed") ? closedFolders.add(path) : closedFolders.delete(path);
+      $("f-folder").value = path;   // clicked folder becomes the target for new notes
+    };
+    li.appendChild(row);
+    const sub = document.createElement("ul");
+    renderBranch(node.folders[name], sub, path);
+    li.appendChild(sub);
+    ul.appendChild(li);
+  }
+  node.notes.sort((a, b) => cmp(a.file, b.file));
+  for (const n of node.notes) {
+    const li = document.createElement("li");
+    li.className = "note";
+    li.textContent = n.file.replace(/\.md$/, "");
+    if (n.path === current) li.classList.add("active");
+    li.onclick = () => confirmLose() && openNote(n.path);
     ul.appendChild(li);
   }
 }
@@ -286,59 +352,86 @@ function markDirty(d) {
 for (const id of ["f-title", "f-summary", "f-body"]) $(id).oninput = () => markDirty(true);
 window.onbeforeunload = () => (dirty ? true : undefined);
 
+let currentDate = "";     // date front matter of the open note, kept on republish
+
+const today = () => {
+  const n = new Date();
+  return n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0") + "-" + String(n.getDate()).padStart(2, "0");
+};
+
 function parseNote(raw) {
   const m = raw.match(/^---\n([\s\S]*?)\n---\n?/);
-  let title = "", summary = "", body = raw;
+  let summary = "", date = "", body = raw;
   if (m) {
     body = raw.slice(m[0].length).replace(/^\n/, "");
-    const t = m[1].match(/^title:\s*"?(.*?)"?\s*$/m);
     const s = m[1].match(/^summary:\s*"?(.*?)"?\s*$/m);
-    if (t) title = t[1];
+    const d = m[1].match(/^date:\s*(.*?)\s*$/m);
     if (s) summary = s[1];
+    if (d) date = d[1];
   }
-  return { title, summary, body };
+  return { summary, date, body };
 }
 function composeNote() {
-  const esc = (s) => s.replace(/"/g, "'");
-  let fm = '---\ntitle: "' + esc($("f-title").value.trim() || "Untitled") + '"\n';
+  let fm = "---\ndate: " + (currentDate || today()) + "\n";
   const sum = $("f-summary").value.trim();
-  if (sum) fm += 'summary: "' + esc(sum) + '"\n';
+  if (sum) fm += 'summary: "' + sum.replace(/"/g, "'") + '"\n';
   return fm + "---\n\n" + $("f-body").value.replace(/\s*$/, "") + "\n";
 }
-async function openNote(name) {
-  const f = await gh("/contents/notes/" + name);
+async function openNote(path) {
+  const f = await gh(notePath(path));
   if (!f) return;
-  const { title, summary, body } = parseNote(b64ToUtf8(f.content));
-  current = name; currentSha = f.sha;
-  $("f-name").textContent = name;
-  $("f-title").value = title; $("f-summary").value = summary; $("f-body").value = body;
+  const { summary, date, body } = parseNote(b64ToUtf8(f.content));
+  current = path; currentSha = f.sha; currentDate = date;
+  $("f-name").textContent = path;
+  $("f-folder").value = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
+  $("f-title").value = path.split("/").pop().replace(/\.md$/, "");
+  $("f-summary").value = summary; $("f-body").value = body;
   markDirty(false);
   refreshList();
 }
 $("b-new").onclick = () => {
   if (!confirmLose()) return;
-  current = null; currentSha = null;
+  current = null; currentSha = null; currentDate = "";
   $("f-name").textContent = "new note";
   $("f-title").value = ""; $("f-summary").value = ""; $("f-body").value = "";
   markDirty(false);
   refreshList();
   $("f-title").focus();
 };
+// Obsidian-style: names keep their case and spaces; only path-breaking chars go.
+const sanitizeName = (s) => s.replace(/[\/\\:*?"<>|#^\[\]]/g, "-").replace(/\s+/g, " ").trim();
+function cleanFolder() {
+  return $("f-folder").value.split("/").map(sanitizeName).filter(Boolean).join("/");
+}
 $("b-save").onclick = async () => {
   $("b-save").disabled = true;
   $("status").textContent = "publishing…"; $("status").className = "";
   try {
-    if (!current) {
-      const n = new Date();
-      const d = n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0") + "-" + String(n.getDate()).padStart(2, "0");
-      const slug = ($("f-title").value.trim() || "untitled").toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "untitled";
-      current = d + "-" + slug + ".md";
+    const folder = cleanFolder();
+    const name = sanitizeName($("f-title").value) || "Untitled";
+    $("f-folder").value = folder;
+    $("f-title").value = name;
+    const target = (folder ? folder + "/" : "") + name + ".md";
+
+    if (current && target !== current) {   // renamed and/or moved: write new path, remove old
+      const moved = await putFile("notes/" + target, composeNote(), "note: " + name + " (moved)");
+      await gh(notePath(current), {
+        method: "DELETE",
+        body: JSON.stringify({ message: "note: move cleanup " + current, sha: currentSha }),
+      });
+      current = target; currentSha = moved.content.sha;
       $("f-name").textContent = current;
+      markDirty(false);
+      $("status").textContent = "moved & published — live in ~1 min"; $("status").className = "ok";
+      refreshList();
+      $("b-save").disabled = false;
+      return;
     }
-    const res = await putFile("notes/" + current, composeNote(),
-      "note: " + ($("f-title").value.trim() || current), currentSha);
+
+    current = current || target;
+    const res = await putFile("notes/" + current, composeNote(), "note: " + name, currentSha);
     currentSha = res.content.sha;
+    $("f-name").textContent = current;
     markDirty(false);
     $("status").textContent = "published — live in ~1 min"; $("status").className = "ok";
     refreshList();
@@ -350,7 +443,7 @@ $("b-save").onclick = async () => {
 $("b-delete").onclick = async () => {
   if (!current) return;
   if (!confirm("Delete " + current + " for good?")) return;
-  await gh("/contents/notes/" + current, {
+  await gh(notePath(current), {
     method: "DELETE",
     body: JSON.stringify({ message: "delete: " + current, sha: currentSha }),
   });

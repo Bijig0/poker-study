@@ -137,6 +137,51 @@ main {
   font-size: 1rem;
 }
 
+.journal { margin-bottom: 3rem; }
+
+.tree-folder { margin: 1.1rem 0 0; }
+
+.tree-folder summary {
+  cursor: pointer;
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: var(--felt);
+  padding: 0.5rem 0.25rem;
+  list-style: none;
+}
+
+.tree-folder summary::-webkit-details-marker { display: none; }
+
+.tree-folder summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 0.5em;
+  color: var(--gold);
+  transition: transform 0.15s ease;
+}
+
+.tree-folder[open] > summary::before { transform: rotate(90deg); }
+
+.tree-folder summary:hover { color: var(--oxblood); }
+
+.tree-folder .tree-body {
+  margin-left: 0.55rem;
+  border-left: 2px solid var(--rule);
+  padding-left: 1.1rem;
+}
+
+.tree-body .note-list, .journal .note-list { margin-bottom: 0.4rem; }
+
+.crumbs {
+  margin: 0 0 0.3rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+}
+
 /* ── Note page ── */
 .note-header {
   margin-bottom: 2rem;

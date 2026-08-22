@@ -1,5 +1,0 @@
-{
-  "layout": "note.njk",
-  "tags": ["note"],
-  "permalink": "/notes/{{ page.fileSlug }}/"
-}

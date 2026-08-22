@@ -1,5 +1,5 @@
 ---
-title: "First entry"
+date: 2026-08-23
 summary: "The journal is live."
 ---
 
