@@ -306,20 +306,27 @@ async function putRaw(path, b64content, message, sha) {
   return gh("/contents/" + enc(path), { method: "PUT", body: JSON.stringify(body) });
 }
 const putText = (path, str, message, sha) => putRaw(path, utf8ToB64(str), message, sha);
-async function delFile(path, message) {
-  const f = await gh("/contents/" + enc(path));
-  if (!f) return;
-  await gh("/contents/" + enc(path), {
-    method: "DELETE", body: JSON.stringify({ message, sha: f.sha }),
-  });
-}
-async function moveFile(oldPath, newPath, message) {
-  const f = await gh("/contents/" + enc(oldPath));
-  if (!f) throw new Error("missing: " + oldPath);
-  await putRaw(newPath, f.content.replace(/\n/g, ""), message);
-  await gh("/contents/" + enc(oldPath), {
-    method: "DELETE", body: JSON.stringify({ message, sha: f.sha }),
-  });
+
+// One atomic commit for any set of adds/updates/deletes (Git Data API).
+// changes: [{path, content}] to write, [{path}] to delete, [{path, sha}] to copy an existing blob.
+async function commitChanges(changes, message, attempt = 0) {
+  try {
+    const ref = await gh("/git/ref/heads/main");
+    const head = ref.object.sha;
+    const base = (await gh("/git/commits/" + head)).tree.sha;
+    const tree = await gh("/git/trees", { method: "POST", body: JSON.stringify({
+      base_tree: base,
+      tree: changes.map((c) => ({ path: c.path, mode: "100644", type: "blob",
+        ...(c.content != null ? { content: c.content } : { sha: c.sha ?? null }) })),
+    })});
+    const commit = await gh("/git/commits", { method: "POST",
+      body: JSON.stringify({ message, tree: tree.sha, parents: [head] }) });
+    await gh("/git/refs/heads/main", { method: "PATCH", body: JSON.stringify({ sha: commit.sha }) });
+    return commit;
+  } catch (e) {
+    if (attempt < 2) { await new Promise((r) => setTimeout(r, 900)); return commitChanges(changes, message, attempt + 1); }
+    throw e;
+  }
 }
 
 /* ── status helper ── */
@@ -365,11 +372,20 @@ $("gate-form").onsubmit = async (e) => {
 const closedFolders = new Set(JSON.parse(localStorage.getItem(LS_CLOSED) || "[]"));
 const saveClosed = () => localStorage.setItem(LS_CLOSED, JSON.stringify([...closedFolders]));
 
-async function refreshTree() {
-  const t = await gh("/git/trees/main?recursive=1");
+const shas = new Map();   // notes-relative path -> blob sha
+async function refreshTree(treeSha) {
+  // after a commit we read back that exact tree, so the view is never stale
+  const t = await gh("/git/trees/" + (treeSha || "main") + "?recursive=1&r=" + Math.random().toString(36).slice(2));
   const entries = (t && t.tree) || [];
-  allFiles = entries.filter((x) => x.type === "blob" && x.path.startsWith("notes/"))
-    .map((x) => x.path.slice(6));
+  shas.clear();
+  allFiles = [];
+  for (const x of entries) {
+    if (x.type === "blob" && x.path.startsWith("notes/")) {
+      const p = x.path.slice(6);
+      allFiles.push(p);
+      shas.set(p, x.sha);
+    }
+  }
   notes = allFiles.filter((p) => p.endsWith(".md"));
   treeFolders = entries.filter((x) => x.type === "tree" && x.path.startsWith("notes/"))
     .map((x) => x.path.slice(6));
@@ -492,35 +508,96 @@ document.addEventListener("dragend", () => {
   document.querySelectorAll(".row.drop").forEach((r) => r.classList.remove("drop"));
 });
 
+/* ── core CRUD ops (each is ONE atomic commit) ── */
+function folderChanges(oldBase, newBase) {
+  // every blob under oldBase (notes and .gitkeep alike) is copied to newBase and removed
+  const inside = allFiles.filter((f) => f.startsWith(oldBase + "/"));
+  if (!inside.length) throw new Error("Folder not found: " + oldBase);
+  const changes = [];
+  for (const f of inside) {
+    changes.push({ path: "notes/" + newBase + f.slice(oldBase.length), sha: shas.get(f) });
+    changes.push({ path: "notes/" + f });
+  }
+  return { inside, changes };
+}
+function retarget(oldBase, newBase) {
+  if (current && (current === oldBase || current.startsWith(oldBase + "/")))
+    current = newBase + current.slice(oldBase.length);
+  if (draftFolder && (draftFolder === oldBase || draftFolder.startsWith(oldBase + "/")))
+    draftFolder = newBase + draftFolder.slice(oldBase.length);
+}
+
+async function moveItem(kind, path, targetFolder) {
+  const base = path.split("/").pop();
+  if (kind === "note") {
+    const dest = (targetFolder ? targetFolder + "/" : "") + base;
+    if (notes.includes(dest)) throw new Error("A note with that name is already there.");
+    const c = await commitChanges(
+      [{ path: "notes/" + dest, sha: shas.get(path) }, { path: "notes/" + path }],
+      "note: move " + base);
+    if (current === path) current = dest;
+    await refreshTree(c.tree.sha);
+  } else {
+    const destBase = (targetFolder ? targetFolder + "/" : "") + base;
+    if (treeFolders.includes(destBase)) throw new Error("A folder with that name is already there.");
+    const { changes } = folderChanges(path, destBase);
+    const c = await commitChanges(changes, "folder: move " + base);
+    retarget(path, destBase);
+    await refreshTree(c.tree.sha);
+  }
+  setCrumb();
+}
+
+async function renameItem(kind, path, name) {
+  const dir = path.includes("/") ? path.slice(0, path.lastIndexOf("/") + 1) : "";
+  if (kind === "note") {
+    const dest = dir + name + ".md";
+    if (notes.includes(dest)) throw new Error("That name is taken.");
+    const c = await commitChanges(
+      [{ path: "notes/" + dest, sha: shas.get(path) }, { path: "notes/" + path }],
+      "note: rename to " + name);
+    if (current === path) { current = dest; $("f-title").value = name; }
+    await refreshTree(c.tree.sha);
+  } else {
+    const dest = dir + name;
+    if (treeFolders.includes(dest)) throw new Error("That name is taken.");
+    const { changes } = folderChanges(path, dest);
+    const c = await commitChanges(changes, "folder: rename to " + name);
+    retarget(path, dest);
+    await refreshTree(c.tree.sha);
+  }
+  setCrumb();
+}
+
+async function deleteItem(kind, path) {
+  let changes;
+  if (kind === "note") {
+    changes = [{ path: "notes/" + path }];
+  } else {
+    const inside = allFiles.filter((f) => f.startsWith(path + "/"));
+    if (!inside.length) throw new Error("Folder not found: " + path);
+    changes = inside.map((f) => ({ path: "notes/" + f }));
+  }
+  const c = await commitChanges(changes, kind + ": delete " + path);
+  if (current && (current === path || current.startsWith(path + "/")))
+    newDraft(path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "");
+  if (draftFolder && (draftFolder === path || draftFolder.startsWith(path + "/"))) draftFolder = "";
+  await refreshTree(c.tree.sha);
+}
+
+async function createFolder(path) {
+  if (treeFolders.includes(path)) throw new Error("That folder already exists.");
+  const c = await commitChanges([{ path: "notes/" + path + "/.gitkeep", content: "" }], "folder: " + path);
+  await refreshTree(c.tree.sha);
+}
+
+/* ── drag-drop wrapper ── */
 async function doMove(item, targetFolder) {
   busy(true);
   try {
-    if (item.kind === "note") {
-      const file = item.path.split("/").pop();
-      const dest = (targetFolder ? targetFolder + "/" : "") + file;
-      if (notes.includes(dest)) throw new Error("A note with that name is already there.");
-      say("moving…");
-      await moveFile("notes/" + item.path, "notes/" + dest, "note: move " + file);
-      if (current === item.path) { current = dest; setCrumb(); }
-    } else {
-      const base = item.path.split("/").pop();
-      const destBase = (targetFolder ? targetFolder + "/" : "") + base;
-      if (treeFolders.includes(destBase)) throw new Error("A folder with that name is already there.");
-      const inside = allFiles.filter((f) => f.startsWith(item.path + "/"));
-      let i = 0;
-      for (const f of inside) {
-        say("moving… " + (++i) + "/" + inside.length);
-        await moveFile("notes/" + f, "notes/" + destBase + f.slice(item.path.length), "folder: move " + base);
-        if (current === f) current = destBase + f.slice(item.path.length);
-      }
-      if (!inside.length) { // empty folder: move its marker
-        await putText("notes/" + destBase + "/.gitkeep", "", "folder: move " + base);
-        await delFile("notes/" + item.path + "/.gitkeep", "folder: move " + base).catch(() => {});
-      }
-      setCrumb();
-    }
+    say("moving…");
+    await moveItem(item.kind, item.path, targetFolder);
     say("moved — site updates in ~1 min", "ok");
-    await refreshTree();
   } catch (err) { say(err.message, "err"); }
   busy(false);
 }
@@ -594,31 +671,9 @@ function inlineRename(kind, path) {
   inlineEdit(row, old, async (name) => {
     busy(true);
     try {
-      const dir = path.includes("/") ? path.slice(0, path.lastIndexOf("/") + 1) : "";
-      if (kind === "note") {
-        const dest = dir + name + ".md";
-        if (notes.includes(dest)) throw new Error("That name is taken.");
-        say("renaming…");
-        await moveFile("notes/" + path, "notes/" + dest, "note: rename to " + name);
-        if (current === path) { current = dest; $("f-title").value = name; setCrumb(); }
-      } else {
-        const dest = dir + name;
-        if (treeFolders.includes(dest)) throw new Error("That name is taken.");
-        const inside = allFiles.filter((f) => f.startsWith(path + "/"));
-        let i = 0;
-        for (const f of inside) {
-          say("renaming… " + (++i) + "/" + inside.length);
-          await moveFile("notes/" + f, "notes/" + dest + f.slice(path.length), "folder: rename " + name);
-          if (current === f) current = dest + f.slice(path.length);
-        }
-        if (!inside.length) {
-          await putText("notes/" + dest + "/.gitkeep", "", "folder: rename " + name);
-          await delFile("notes/" + path + "/.gitkeep", "folder: rename " + name).catch(() => {});
-        }
-        setCrumb();
-      }
+      say("renaming…");
+      await renameItem(kind, path, name);
       say("renamed — site updates in ~1 min", "ok");
-      await refreshTree();
     } catch (err) { say(err.message, "err"); await refreshTree(); }
     busy(false);
   });
@@ -634,42 +689,29 @@ function inlineNewFolder(parent) {
   row.innerHTML = '<span class="chev">' + CHEV + '</span><span class="nm"></span>';
   container.prepend(row);
   inlineEdit(row, "", async (name) => {
-    const path = (parent ? parent + "/" : "") + name;
     busy(true);
     try {
-      if (treeFolders.includes(path)) throw new Error("That folder already exists.");
       say("creating folder…");
-      await putText("notes/" + path + "/.gitkeep", "", "folder: " + path);
+      await createFolder((parent ? parent + "/" : "") + name);
       say("folder created", "ok");
-      await refreshTree();
     } catch (err) { say(err.message, "err"); }
     busy(false);
   });
 }
 
-/* ── delete ── */
+/* ── delete (UI wrapper: confirm, then one atomic commit) ── */
 async function removeItem(kind, path) {
+  if (kind === "note") {
+    if (!confirm('Delete "' + path.split("/").pop().replace(/\.md$/, "") + '"?')) return;
+  } else {
+    const n = allFiles.filter((f) => f.startsWith(path + "/") && f.endsWith(".md")).length;
+    if (!confirm('Delete folder "' + path + '"' + (n ? " and the " + n + " note(s) inside" : "") + "?")) return;
+  }
   busy(true);
   try {
-    if (kind === "note") {
-      if (!confirm('Delete "' + path.split("/").pop().replace(/\.md$/, "") + '"?')) { busy(false); return; }
-      say("deleting…");
-      await delFile("notes/" + path, "note: delete " + path);
-      if (current === path) newDraft(path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "");
-    } else {
-      const inside = allFiles.filter((f) => f.startsWith(path + "/"));
-      const n = inside.filter((f) => f.endsWith(".md")).length;
-      if (!confirm('Delete folder "' + path + '"' + (n ? " and the " + n + " note(s) inside" : "") + "?")) { busy(false); return; }
-      let i = 0;
-      for (const f of inside) {
-        say("deleting… " + (++i) + "/" + inside.length);
-        await delFile("notes/" + f, "folder: delete " + path);
-        if (current === f) newDraft("");
-      }
-      if (!inside.length) await delFile("notes/" + path + "/.gitkeep", "folder: delete " + path).catch(() => {});
-    }
+    say("deleting…");
+    await deleteItem(kind, path);
     say("deleted — site updates in ~1 min", "ok");
-    await refreshTree();
   } catch (err) { say(err.message, "err"); }
   busy(false);
 }
@@ -716,7 +758,7 @@ function setCrumb() {
   });
 }
 async function openNote(path) {
-  const f = await gh(notePath(path));
+  const f = await gh(notePath(path) + "?r=" + Math.random().toString(36).slice(2));
   if (!f) { say("couldn't open " + path, "err"); return; }
   const { summary, date, body } = parseNote(b64ToUtf8(f.content));
   current = path; currentSha = f.sha; currentDate = date;
@@ -742,30 +784,24 @@ async function publish() {
     const name = sanitizeName($("f-title").value) || "Untitled";
     $("f-title").value = name;
     say("publishing…");
+    let dest, changes;
     if (!current) {
-      const dest = (draftFolder ? draftFolder + "/" : "") + name + ".md";
+      dest = (draftFolder ? draftFolder + "/" : "") + name + ".md";
       if (notes.includes(dest)) throw new Error("A note with that name already exists there.");
-      const res = await putText("notes/" + dest, composeNote(), "note: " + name);
-      current = dest; currentSha = res.content.sha;
+      changes = [{ path: "notes/" + dest, content: composeNote() }];
     } else {
       const dir = current.includes("/") ? current.slice(0, current.lastIndexOf("/") + 1) : "";
-      const dest = dir + name + ".md";
-      if (dest !== current) {          // renamed via the title field
-        if (notes.includes(dest)) throw new Error("That name is taken.");
-        const res = await putText("notes/" + dest, composeNote(), "note: " + name);
-        await gh(notePath(current), {
-          method: "DELETE", body: JSON.stringify({ message: "note: rename cleanup", sha: currentSha }),
-        });
-        current = dest; currentSha = res.content.sha;
-      } else {
-        const res = await putText("notes/" + current, composeNote(), "note: " + name, currentSha);
-        currentSha = res.content.sha;
-      }
+      dest = dir + name + ".md";
+      if (dest !== current && notes.includes(dest)) throw new Error("That name is taken.");
+      changes = [{ path: "notes/" + dest, content: composeNote() }];
+      if (dest !== current) changes.push({ path: "notes/" + current }); // renamed via title
     }
+    const c = await commitChanges(changes, "note: " + name);
+    current = dest;
     markDirty(false);
     say("published — live in ~1 min", "ok");
     setCrumb();
-    await refreshTree();
+    await refreshTree(c.tree.sha);
   } catch (err) { say(err.message, "err"); }
   busy(false);
 }
