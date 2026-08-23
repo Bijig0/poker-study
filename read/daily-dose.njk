@@ -1,0 +1,163 @@
+---
+permalink: /read/daily-dose/
+eleventyExcludeFromCollections: true
+---
+{% raw %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Daily Dose of GTO · Poker Study</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>">
+  <style>
+    :root { --bg: #1e1e1e; --bar: #262626; --text: #dcddde; --muted: #999; --accent: #8a7cff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+      display: flex; align-items: center; gap: 12px; padding: 8px 14px;
+      background: var(--bar); border-bottom: 1px solid #333; font-size: 13px;
+    }
+    header a { color: var(--muted); text-decoration: none; }
+    header a:hover { color: var(--text); }
+    .grow { flex: 1; }
+    #pageinfo { color: var(--muted); font-variant-numeric: tabular-nums; }
+    button {
+      background: #333; color: var(--text); border: none; border-radius: 6px;
+      padding: 4px 10px; font-size: 13px; cursor: pointer;
+    }
+    button:hover { background: #3d3d3d; }
+    #pages { padding: 52px 0 60px; }
+    .pg {
+      margin: 10px auto; background: #2a2a2a; position: relative;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.45);
+    }
+    .pg canvas { display: block; width: 100%; height: 100%; }
+    #boot {
+      position: fixed; inset: 0; display: flex; flex-direction: column; gap: 10px;
+      align-items: center; justify-content: center; color: var(--muted); font-size: 14px;
+    }
+    #boot .spin {
+      width: 22px; height: 22px; border: 2px solid #444; border-top-color: var(--accent);
+      border-radius: 50%; animation: r 0.8s linear infinite;
+    }
+    @keyframes r { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<header>
+  <a href="/notes/library/">← library</a>
+  <span>Daily Dose of GTO</span>
+  <div class="grow"></div>
+  <span id="pageinfo"></span>
+  <button id="z-out" title="Zoom out">−</button>
+  <button id="z-in" title="Zoom in">+</button>
+</header>
+<div id="boot"><div class="spin"></div><div>opening the book…</div></div>
+<div id="pages"></div>
+
+<script type="module">
+import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.min.mjs";
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.worker.min.mjs";
+
+const URL_ = "https://cxvx4va6ibu23h0b.public.blob.vercel-storage.com/library/daily-dose-of-gto.pdf";
+const LS_POS = "ddgto-reader-pos";
+const $ = (id) => document.getElementById(id);
+
+let pdf, zoom = 1, baseW, baseH;           // css size of a page at zoom 1
+const holders = [];                        // page container divs
+const rendered = new Map();                // pageNo -> canvas
+const MAX_LIVE = 24;
+
+function fitWidth(vp) {
+  const target = Math.min(innerWidth - 24, 900);
+  return target / vp.width;
+}
+
+async function renderPage(no) {
+  if (rendered.has(no)) return;
+  rendered.set(no, null);                  // reserve to avoid double-render
+  const page = await pdf.getPage(no);
+  const scale = fitWidth(page.getViewport({ scale: 1 })) * zoom;
+  const vp = page.getViewport({ scale });
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.floor(vp.width * dpr);
+  canvas.height = Math.floor(vp.height * dpr);
+  const ctx = canvas.getContext("2d");
+  await page.render({ canvasContext: ctx, viewport: vp, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null }).promise;
+  const h = holders[no - 1];
+  h.style.width = vp.width + "px"; h.style.height = vp.height + "px";
+  h.replaceChildren(canvas);
+  rendered.set(no, canvas);
+  if (rendered.size > MAX_LIVE) evictFar(no);
+}
+function evictFar(center) {
+  const far = [...rendered.keys()].filter((n) => rendered.get(n) && Math.abs(n - center) > 12);
+  for (const n of far) {
+    holders[n - 1].replaceChildren();
+    rendered.delete(n);
+  }
+}
+
+const io = new IntersectionObserver((entries) => {
+  for (const e of entries) if (e.isIntersecting) renderPage(+e.target.dataset.p);
+  const mid = holders.findIndex((h) => {
+    const r = h.getBoundingClientRect();
+    return r.top < innerHeight / 2 && r.bottom > innerHeight / 2;
+  });
+  if (mid >= 0) {
+    $("pageinfo").textContent = (mid + 1) + " / " + pdf.numPages;
+    clearTimeout(io._t);
+    io._t = setTimeout(() => localStorage.setItem(LS_POS, String(mid + 1)), 400);
+  }
+}, { rootMargin: "1200px 0px" });
+
+function layout() {
+  const first = baseW * zoom, firstH = baseH * zoom;
+  for (const h of holders) {
+    if (!h.firstChild) { h.style.width = first + "px"; h.style.height = firstH + "px"; }
+  }
+}
+
+async function boot() {
+  pdf = await pdfjsLib.getDocument({
+    url: URL_, disableAutoFetch: true, rangeChunkSize: 1048576,
+  }).promise;
+  const p1 = await pdf.getPage(1);
+  const vp1 = p1.getViewport({ scale: fitWidth(p1.getViewport({ scale: 1 })) });
+  baseW = vp1.width; baseH = vp1.height;
+  const frag = document.createDocumentFragment();
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const d = document.createElement("div");
+    d.className = "pg"; d.dataset.p = i;
+    d.style.width = baseW + "px"; d.style.height = baseH + "px";
+    frag.appendChild(d); holders.push(d);
+  }
+  $("pages").appendChild(frag);
+  holders.forEach((h) => io.observe(h));
+  $("boot").remove();
+  const pos = parseInt(localStorage.getItem(LS_POS) || "1", 10);
+  if (pos > 1 && pos <= pdf.numPages) holders[pos - 1].scrollIntoView();
+}
+
+function setZoom(z) {
+  zoom = Math.min(3, Math.max(0.5, z));
+  const midPage = parseInt($("pageinfo").textContent, 10) || 1;
+  for (const [n] of rendered) holders[n - 1].replaceChildren();
+  rendered.clear();
+  layout();
+  holders[midPage - 1]?.scrollIntoView();
+}
+$("z-in").onclick = () => setZoom(zoom * 1.2);
+$("z-out").onclick = () => setZoom(zoom / 1.2);
+
+boot().catch((e) => { $("boot").innerHTML = "couldn't open the book: " + e.message; });
+</script>
+</body>
+</html>
+{% endraw %}

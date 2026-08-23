@@ -5,7 +5,7 @@ summary: "Books and references — click to read."
 
 ## Books
 
-- **[Daily Dose of GTO — the book](https://cxvx4va6ibu23h0b.public.blob.vercel-storage.com/library/daily-dose-of-gto.pdf)** — opens straight in the browser, page 1 shows while the rest streams. Book by [dailydoseofgto.com](https://www.dailydoseofgto.com/) (their [original download](https://download.dailydoseofgto.com/book/v3/DailyDoseOfGTO_Book.pdf)).
+- **[Daily Dose of GTO — read the book](/read/daily-dose/)** — opens the built-in reader: page 1 shows immediately, the rest streams as you scroll, and it remembers where you left off. Book by [dailydoseofgto.com](https://www.dailydoseofgto.com/) (their [original download](https://download.dailydoseofgto.com/book/v3/DailyDoseOfGTO_Book.pdf)).
 
 ## Sites
 
