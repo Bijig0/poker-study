@@ -277,7 +277,7 @@ eleventyExcludeFromCollections: true
 </div>
 
 <script>
-const VERSION = "v6";
+const VERSION = "v7";
 const REPO = "Bijig0/poker-study";
 const API = "https://api.github.com/repos/" + REPO;
 const CONFIG_PATH = "write-config.json";
@@ -392,7 +392,7 @@ $("m-cancel").onclick = () => closeModal(false);
 $("modal").onclick = (e) => { if (e.target === $("modal")) closeModal(false); };
 document.addEventListener("keydown", (e) => {
   if ($("modal").style.display !== "flex") return;
-  if (e.key === "Enter") { e.preventDefault(); closeModal(true); }
+  if (e.key === "Enter" || e.key === "Return" || e.keyCode === 13) { e.preventDefault(); closeModal(true); }
   if (e.key === "Escape") { e.preventDefault(); closeModal(false); }
 });
 
@@ -723,7 +723,7 @@ function inlineEdit(row, initial, onCommit) {
     if (commit && v && v !== initial) onCommit(v);
   };
   input.onkeydown = (e) => {
-    if (e.key === "Enter") finish(true);
+    if (e.key === "Enter" || e.key === "Return" || e.keyCode === 13) finish(true);
     if (e.key === "Escape") finish(false);
   };
   input.onblur = () => finish(true);
