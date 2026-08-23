@@ -277,7 +277,7 @@ eleventyExcludeFromCollections: true
 </div>
 
 <script>
-const VERSION = "v7";
+const VERSION = "v8";
 const REPO = "Bijig0/poker-study";
 const API = "https://api.github.com/repos/" + REPO;
 const CONFIG_PATH = "write-config.json";
@@ -289,8 +289,15 @@ let allFiles = [];        // every blob path under notes/ (incl .gitkeep)
 let notes = [];           // .md paths under notes/
 let treeFolders = [];     // folder paths under notes/
 let current = null;       // open note path, null = draft
-let currentSha = null, currentDate = "", dirty = false;
+let currentDate = "", dirty = false;
 let draftFolder = "";     // folder a new draft will publish into
+
+// Optimistic layer: the UI mutates local state instantly; commits run in a
+// background queue. `contents` holds text we know locally (pending or fresh
+// publishes); blob shas are content-addressed, so a move keeps its sha.
+const contents = new Map();  // path -> latest known text
+let syncing = 0;             // queued/in-flight commits
+let queue = Promise.resolve();
 
 const $ = (id) => document.getElementById(id);
 const CHEV = '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
@@ -435,12 +442,60 @@ $("gate-form").onsubmit = async (e) => {
 const closedFolders = new Set(JSON.parse(localStorage.getItem(LS_CLOSED) || "[]"));
 const saveClosed = () => localStorage.setItem(LS_CLOSED, JSON.stringify([...closedFolders]));
 
+function updateSync() {
+  if (syncing > 0) say("saving…");
+  else if (dirty) say("unsaved edits (kept locally) — publish when ready");
+  else say("all changes saved — site updates in ~1 min", "ok");
+}
+// serialize commits; on failure roll the view back to server truth
+function enqueue(changes, message) {
+  syncing++; updateSync();
+  queue = queue
+    .then(() => commitChanges(changes, message))
+    .then(async (c) => {
+      syncing--;
+      if (syncing === 0) { await refreshTree(c.tree.sha); updateSync(); }
+    })
+    .catch(async (err) => {
+      syncing--;
+      say(err.message, "err");
+      try { await refreshTree(); } catch (_) {}
+    });
+}
+window.onbeforeunload = () => (syncing > 0 ? true : undefined);
+
 const shas = new Map();   // notes-relative path -> blob sha
+const blobOf = (p) => contents.has(p) ? { content: contents.get(p) } : { sha: shas.get(p) };
+
+/* local (optimistic) mutations */
+function reNotes() { notes = allFiles.filter((f) => f.endsWith(".md")); }
+function localAdd(p, text) {
+  if (!allFiles.includes(p)) allFiles.push(p);
+  contents.set(p, text); reNotes();
+}
+function localMove(oldP, newP) {
+  allFiles = allFiles.map((f) => (f === oldP ? newP : f));
+  if (shas.has(oldP)) { shas.set(newP, shas.get(oldP)); shas.delete(oldP); }
+  if (contents.has(oldP)) { contents.set(newP, contents.get(oldP)); contents.delete(oldP); }
+  reNotes();
+}
+function localDelete(p) {
+  allFiles = allFiles.filter((f) => f !== p);
+  shas.delete(p); contents.delete(p); reNotes();
+}
+function localMoveFolder(oldBase, newBase) {
+  for (const f of allFiles.filter((x) => x.startsWith(oldBase + "/")))
+    localMove(f, newBase + f.slice(oldBase.length));
+  treeFolders = treeFolders.map((d) =>
+    d === oldBase || d.startsWith(oldBase + "/") ? newBase + d.slice(oldBase.length) : d);
+}
+
 async function refreshTree(treeSha) {
   // after a commit we read back that exact tree, so the view is never stale
   const t = await gh("/git/trees/" + (treeSha || "main") + "?recursive=1&r=" + Math.random().toString(36).slice(2));
   const entries = (t && t.tree) || [];
   shas.clear();
+  contents.clear();      // server is truth once a refresh lands
   allFiles = [];
   for (const x of entries) {
     if (x.type === "blob" && x.path.startsWith("notes/")) {
@@ -571,17 +626,17 @@ document.addEventListener("dragend", () => {
   document.querySelectorAll(".row.drop").forEach((r) => r.classList.remove("drop"));
 });
 
-/* ── core CRUD ops (each is ONE atomic commit) ── */
+/* ── core CRUD ops: apply locally NOW, commit in the background queue ── */
 function folderChanges(oldBase, newBase) {
   // every blob under oldBase (notes and .gitkeep alike) is copied to newBase and removed
   const inside = allFiles.filter((f) => f.startsWith(oldBase + "/"));
   if (!inside.length) throw new Error("Folder not found: " + oldBase);
   const changes = [];
   for (const f of inside) {
-    changes.push({ path: "notes/" + newBase + f.slice(oldBase.length), sha: shas.get(f) });
+    changes.push({ path: "notes/" + newBase + f.slice(oldBase.length), ...blobOf(f) });
     changes.push({ path: "notes/" + f });
   }
-  return { inside, changes };
+  return changes;
 }
 function retarget(oldBase, newBase) {
   if (current && (current === oldBase || current.startsWith(oldBase + "/")))
@@ -590,81 +645,79 @@ function retarget(oldBase, newBase) {
     draftFolder = newBase + draftFolder.slice(oldBase.length);
 }
 
-async function moveItem(kind, path, targetFolder) {
+function moveItem(kind, path, targetFolder) {
   const base = path.split("/").pop();
   if (kind === "note") {
     const dest = (targetFolder ? targetFolder + "/" : "") + base;
     if (notes.includes(dest)) throw new Error("A note with that name is already there.");
-    const c = await commitChanges(
-      [{ path: "notes/" + dest, sha: shas.get(path) }, { path: "notes/" + path }],
-      "note: move " + base);
+    const changes = [{ path: "notes/" + dest, ...blobOf(path) }, { path: "notes/" + path }];
+    localMove(path, dest);
     if (current === path) current = dest;
-    await refreshTree(c.tree.sha);
+    enqueue(changes, "note: move " + base);
   } else {
     const destBase = (targetFolder ? targetFolder + "/" : "") + base;
     if (treeFolders.includes(destBase)) throw new Error("A folder with that name is already there.");
-    const { changes } = folderChanges(path, destBase);
-    const c = await commitChanges(changes, "folder: move " + base);
+    const changes = folderChanges(path, destBase);
+    localMoveFolder(path, destBase);
     retarget(path, destBase);
-    await refreshTree(c.tree.sha);
+    enqueue(changes, "folder: move " + base);
   }
-  setCrumb();
+  renderTree(); setCrumb();
 }
 
-async function renameItem(kind, path, name) {
+function renameItem(kind, path, name) {
   const dir = path.includes("/") ? path.slice(0, path.lastIndexOf("/") + 1) : "";
   if (kind === "note") {
     const dest = dir + name + ".md";
     if (notes.includes(dest)) throw new Error("That name is taken.");
-    const c = await commitChanges(
-      [{ path: "notes/" + dest, sha: shas.get(path) }, { path: "notes/" + path }],
-      "note: rename to " + name);
+    const changes = [{ path: "notes/" + dest, ...blobOf(path) }, { path: "notes/" + path }];
+    localMove(path, dest);
     if (current === path) { current = dest; $("f-title").value = name; }
-    await refreshTree(c.tree.sha);
+    enqueue(changes, "note: rename to " + name);
   } else {
     const dest = dir + name;
     if (treeFolders.includes(dest)) throw new Error("That name is taken.");
-    const { changes } = folderChanges(path, dest);
-    const c = await commitChanges(changes, "folder: rename to " + name);
+    const changes = folderChanges(path, dest);
+    localMoveFolder(path, dest);
     retarget(path, dest);
-    await refreshTree(c.tree.sha);
+    enqueue(changes, "folder: rename to " + name);
   }
-  setCrumb();
+  renderTree(); setCrumb();
 }
 
-async function deleteItem(kind, path) {
+function deleteItem(kind, path) {
   let changes;
   if (kind === "note") {
     changes = [{ path: "notes/" + path }];
+    localDelete(path);
   } else {
     const inside = allFiles.filter((f) => f.startsWith(path + "/"));
     if (!inside.length) throw new Error("Folder not found: " + path);
     changes = inside.map((f) => ({ path: "notes/" + f }));
+    for (const f of inside) localDelete(f);
+    treeFolders = treeFolders.filter((d) => d !== path && !d.startsWith(path + "/"));
   }
-  const c = await commitChanges(changes, kind + ": delete " + path);
+  enqueue(changes, kind + ": delete " + path);
   if (current && (current === path || current.startsWith(path + "/"))) {
     dirty = false;   // the note is gone; nothing left to discard
-    await newDraft(path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "");
+    newDraft(path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "");
   }
   if (draftFolder && (draftFolder === path || draftFolder.startsWith(path + "/"))) draftFolder = "";
-  await refreshTree(c.tree.sha);
+  renderTree();
 }
 
-async function createFolder(path) {
+function createFolder(path) {
   if (treeFolders.includes(path)) throw new Error("That folder already exists.");
-  const c = await commitChanges([{ path: "notes/" + path + "/.gitkeep", content: "" }], "folder: " + path);
-  await refreshTree(c.tree.sha);
+  treeFolders.push(path);
+  localAdd(path + "/.gitkeep", "");
+  enqueue([{ path: "notes/" + path + "/.gitkeep", content: "" }], "folder: " + path);
+  renderTree();
 }
 
 /* ── drag-drop wrapper ── */
-async function doMove(item, targetFolder) {
-  busy(true);
-  try {
-    say("moving…");
-    await moveItem(item.kind, item.path, targetFolder);
-    say("moved — site updates in ~1 min", "ok");
-  } catch (err) { say(err.message, "err"); }
-  busy(false);
+function doMove(item, targetFolder) {
+  try { moveItem(item.kind, item.path, targetFolder); }
+  catch (err) { say(err.message, "err"); }
 }
 
 /* ── context menu ── */
@@ -733,14 +786,9 @@ function inlineRename(kind, path) {
   const row = rowFor(path);
   if (!row) return;
   const old = path.split("/").pop().replace(/\.md$/, "");
-  inlineEdit(row, old, async (name) => {
-    busy(true);
-    try {
-      say("renaming…");
-      await renameItem(kind, path, name);
-      say("renamed — site updates in ~1 min", "ok");
-    } catch (err) { say(err.message, "err"); await refreshTree(); }
-    busy(false);
+  inlineEdit(row, old, (name) => {
+    try { renameItem(kind, path, name); }
+    catch (err) { say(err.message, "err"); renderTree(); }
   });
 }
 function inlineNewFolder(parent) {
@@ -753,14 +801,9 @@ function inlineNewFolder(parent) {
   row.className = "row folder";
   row.innerHTML = '<span class="chev">' + CHEV + '</span><span class="nm"></span>';
   container.prepend(row);
-  inlineEdit(row, "", async (name) => {
-    busy(true);
-    try {
-      say("creating folder…");
-      await createFolder((parent ? parent + "/" : "") + name);
-      say("folder created", "ok");
-    } catch (err) { say(err.message, "err"); }
-    busy(false);
+  inlineEdit(row, "", (name) => {
+    try { createFolder((parent ? parent + "/" : "") + name); }
+    catch (err) { say(err.message, "err"); renderTree(); }
   });
 }
 
@@ -774,20 +817,32 @@ async function removeItem(kind, path) {
     msg = 'Delete folder "' + path + '"' + (n ? " and the " + n + " note(s) inside" : "") + "?";
   }
   if (!(await ask(msg, "Delete", true))) return;
-  busy(true);
-  try {
-    say("deleting…");
-    await deleteItem(kind, path);
-    say("deleted — site updates in ~1 min", "ok");
-  } catch (err) { say(err.message, "err"); }
-  busy(false);
+  try { deleteItem(kind, path); }
+  catch (err) { say(err.message, "err"); }
 }
 
 /* ── editor ── */
 async function confirmLose() { return !dirty || ask("Discard unpublished changes?", "Discard", true); }
-function markDirty(d) { dirty = d; if (d) say("unpublished changes"); else if ($("status").className === "") say(""); }
+
+// every keystroke is mirrored to localStorage — closing the tab never loses work
+const LS_DRAFT = "poker-study-draft";
+let draftTimer = null;
+function persistDraft() {
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => {
+    localStorage.setItem(LS_DRAFT, JSON.stringify({
+      current, draftFolder, dirty, date: currentDate,
+      title: $("f-title").value, summary: $("f-summary").value, body: $("f-body").value,
+    }));
+  }, 150);
+}
+function markDirty(d) {
+  dirty = d;
+  persistDraft();
+  if (d) say("unsaved edits (kept locally) — publish when ready");
+  else if ($("status").className === "") say("");
+}
 for (const id of ["f-title", "f-summary", "f-body"]) $(id).oninput = () => markDirty(true);
-window.onbeforeunload = () => (dirty ? true : undefined);
 document.addEventListener("keydown", (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); if ($("app").classList.contains("on")) publish(); }
 });
@@ -825,52 +880,55 @@ function setCrumb() {
   });
 }
 async function openNote(path) {
-  const f = await gh(notePath(path) + "?r=" + Math.random().toString(36).slice(2));
-  if (!f) { say("couldn't open " + path, "err"); return; }
-  const { summary, date, body } = parseNote(b64ToUtf8(f.content));
-  current = path; currentSha = f.sha; currentDate = date;
+  let raw;
+  if (contents.has(path)) raw = contents.get(path);   // pending local publish: instant, no fetch
+  else {
+    const f = await gh(notePath(path) + "?r=" + Math.random().toString(36).slice(2));
+    if (!f) { say("couldn't open " + path, "err"); return; }
+    raw = b64ToUtf8(f.content);
+  }
+  const { summary, date, body } = parseNote(raw);
+  current = path; currentDate = date;
   $("f-title").value = path.split("/").pop().replace(/\.md$/, "");
   $("f-summary").value = summary; $("f-body").value = body;
-  markDirty(false); say("");
+  markDirty(false);
   setCrumb(); renderTree();
 }
 async function newDraft(folder) {
   if (!(await confirmLose())) return;
-  current = null; currentSha = null; currentDate = ""; draftFolder = folder || "";
+  current = null; currentDate = ""; draftFolder = folder || "";
   $("f-title").value = ""; $("f-summary").value = ""; $("f-body").value = "";
-  markDirty(false); say("");
+  markDirty(false);
   setCrumb(); renderTree();
   $("f-title").focus();
 }
 $("i-newnote").onclick = () => newDraft(draftFolder);
 $("i-newfolder").onclick = () => inlineNewFolder("");
 
-async function publish() {
-  busy(true);
+function publish() {
   try {
     const name = sanitizeName($("f-title").value) || "Untitled";
     $("f-title").value = name;
-    say("publishing…");
+    if (!currentDate) currentDate = today();
+    const composed = composeNote();
     let dest, changes;
     if (!current) {
       dest = (draftFolder ? draftFolder + "/" : "") + name + ".md";
       if (notes.includes(dest)) throw new Error("A note with that name already exists there.");
-      changes = [{ path: "notes/" + dest, content: composeNote() }];
+      changes = [{ path: "notes/" + dest, content: composed }];
     } else {
       const dir = current.includes("/") ? current.slice(0, current.lastIndexOf("/") + 1) : "";
       dest = dir + name + ".md";
       if (dest !== current && notes.includes(dest)) throw new Error("That name is taken.");
-      changes = [{ path: "notes/" + dest, content: composeNote() }];
-      if (dest !== current) changes.push({ path: "notes/" + current }); // renamed via title
+      changes = [{ path: "notes/" + dest, content: composed }];
+      if (dest !== current) { changes.push({ path: "notes/" + current }); localDelete(current); }
     }
-    const c = await commitChanges(changes, "note: " + name);
+    localAdd(dest, composed);
     current = dest;
     markDirty(false);
-    say("published — live in ~1 min", "ok");
-    setCrumb();
-    await refreshTree(c.tree.sha);
+    setCrumb(); renderTree();
+    enqueue(changes, "note: " + name);
   } catch (err) { say(err.message, "err"); }
-  busy(false);
 }
 $("b-publish").onclick = publish;
 $("b-logout").onclick = () => { localStorage.removeItem(LS_KEY); token = null; location.reload(); };
@@ -881,6 +939,17 @@ async function enterApp() {
   $("app").classList.add("on");
   setCrumb();
   await refreshTree();
+  const d = JSON.parse(localStorage.getItem(LS_DRAFT) || "null");
+  if (d && d.dirty) {          // tab was closed with unpublished edits: restore them
+    current = d.current && notes.includes(d.current) ? d.current : null;
+    draftFolder = current ? "" : (d.draftFolder || "");
+    currentDate = d.date || "";
+    $("f-title").value = d.title || ""; $("f-summary").value = d.summary || ""; $("f-body").value = d.body || "";
+    dirty = true;
+    setCrumb(); renderTree();
+    say("restored unsaved edits — publish when ready");
+    return;
+  }
   const want = new URLSearchParams(location.search).get("note");
   if (want && notes.includes(want)) openNote(want);
 }
