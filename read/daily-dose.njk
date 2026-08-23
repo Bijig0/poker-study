@@ -76,15 +76,22 @@ function makeRangeTransport(pdfjsLib) {
     constructor() { super(LEN, null); }
     async requestDataRange(begin, end) {
       end = Math.min(end, LEN);
-      try {
-        // no-store: a cached 200 here would hand us the whole file instead of a slice
-        const r = await fetch(URL_, { cache: "no-store", headers: { Range: "bytes=" + begin + "-" + (end - 1) } });
-        if (!r.ok) throw new Error("range fetch " + r.status);
-        let buf = await r.arrayBuffer();
-        if (r.status !== 206) buf = buf.slice(begin, end);                    // server ignored Range: full body
-        else if (buf.byteLength > end - begin) buf = buf.slice(0, end - begin); // over-long partial
-        this.onDataRange(begin, new Uint8Array(buf));
-      } catch (e) { console.error("range", begin, e); }
+      for (let attempt = 0; attempt < 4; attempt++) {
+        try {
+          // no-store: a cached 200 here would hand us the whole file instead of a slice
+          const r = await fetch(URL_, { cache: "no-store", headers: { Range: "bytes=" + begin + "-" + (end - 1) } });
+          if (!r.ok) throw new Error("range fetch " + r.status);
+          let buf = await r.arrayBuffer();
+          if (r.status !== 206) buf = buf.slice(begin, end);                    // server ignored Range: full body
+          else if (buf.byteLength > end - begin) buf = buf.slice(0, end - begin); // over-long partial
+          if (buf.byteLength !== end - begin) throw new Error("short read " + buf.byteLength);
+          this.onDataRange(begin, new Uint8Array(buf));
+          return;
+        } catch (e) {
+          if (attempt === 3) { console.error("range", begin, e); return; }
+          await new Promise((res) => setTimeout(res, 500 * (attempt + 1)));
+        }
+      }
     }
   })();
 }
@@ -101,9 +108,11 @@ function fitWidth(vp) {
   return target / vp.width;
 }
 
+const pendingAt = new Map();
 async function renderPage(no) {
   if (rendered.has(no)) return;
   rendered.set(no, null);                  // reserve to avoid double-render
+  pendingAt.set(no, performance.now());
   try {
     const page = await pdf.getPage(no);
     const scale = fitWidth(page.getViewport({ scale: 1 })) * zoom;
@@ -118,9 +127,11 @@ async function renderPage(no) {
     h.style.width = vp.width + "px"; h.style.height = vp.height + "px";
     h.replaceChildren(canvas);
     rendered.set(no, canvas);
+    pendingAt.delete(no);
     if (rendered.size > MAX_LIVE) evictFar(no);
   } catch (e) {
     rendered.delete(no);                   // failed: allow a retry on next intersection
+    pendingAt.delete(no);
     console.error("render p" + no, e);
   }
 }
@@ -172,6 +183,16 @@ async function boot() {
   $("boot").remove();
   const pos = parseInt(localStorage.getItem(LS_POS) || "1", 10);
   if (pos > 1 && pos <= pdf.numPages) holders[pos - 1].scrollIntoView();
+  // safety net: if a visible page's render failed or hung (flaky network), retry it
+  setInterval(() => {
+    for (const h of holders) {
+      const r = h.getBoundingClientRect();
+      if (r.bottom < -200 || r.top > innerHeight + 200 || h.firstChild) continue;
+      const p = +h.dataset.p;
+      const stuck = rendered.get(p) === null && performance.now() - (pendingAt.get(p) || 0) > 8000;
+      if (!rendered.has(p) || stuck) { rendered.delete(p); renderPage(p); }
+    }
+  }, 4000);
 }
 
 function setZoom(z) {
