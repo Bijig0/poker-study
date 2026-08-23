@@ -74,11 +74,17 @@ const LEN = 166813123;   // exact byte length of the linearized file
 function makeRangeTransport(pdfjsLib) {
   return new (class extends pdfjsLib.PDFDataRangeTransport {
     constructor() { super(LEN, null); }
-    requestDataRange(begin, end) {
-      fetch(URL_, { headers: { Range: "bytes=" + begin + "-" + (end - 1) } })
-        .then((r) => { if (!r.ok && r.status !== 206) throw new Error("range fetch " + r.status); return r.arrayBuffer(); })
-        .then((b) => this.onDataRange(begin, new Uint8Array(b)))
-        .catch((e) => console.error("range", begin, e));
+    async requestDataRange(begin, end) {
+      end = Math.min(end, LEN);
+      try {
+        // no-store: a cached 200 here would hand us the whole file instead of a slice
+        const r = await fetch(URL_, { cache: "no-store", headers: { Range: "bytes=" + begin + "-" + (end - 1) } });
+        if (!r.ok) throw new Error("range fetch " + r.status);
+        let buf = await r.arrayBuffer();
+        if (r.status !== 206) buf = buf.slice(begin, end);                    // server ignored Range: full body
+        else if (buf.byteLength > end - begin) buf = buf.slice(0, end - begin); // over-long partial
+        this.onDataRange(begin, new Uint8Array(buf));
+      } catch (e) { console.error("range", begin, e); }
     }
   })();
 }
