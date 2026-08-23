@@ -76,7 +76,8 @@ function makeRangeTransport(pdfjsLib) {
     constructor() { super(LEN, null); }
     async requestDataRange(begin, end) {
       end = Math.min(end, LEN);
-      for (let attempt = 0; attempt < 4; attempt++) {
+      // never abandon a chunk: PDF.js waits on it forever, so we retry until it lands
+      for (let attempt = 0; ; attempt++) {
         try {
           // no-store: a cached 200 here would hand us the whole file instead of a slice
           const r = await fetch(URL_, { cache: "no-store", headers: { Range: "bytes=" + begin + "-" + (end - 1) } });
@@ -88,8 +89,8 @@ function makeRangeTransport(pdfjsLib) {
           this.onDataRange(begin, new Uint8Array(buf));
           return;
         } catch (e) {
-          if (attempt === 3) { console.error("range", begin, e); return; }
-          await new Promise((res) => setTimeout(res, 500 * (attempt + 1)));
+          console.warn("range retry", begin, e.message);
+          await new Promise((res) => setTimeout(res, Math.min(500 * (attempt + 1), 5000)));
         }
       }
     }
