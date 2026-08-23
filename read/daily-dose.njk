@@ -99,12 +99,14 @@ const LS_POS = "ddgto-reader-pos";
 const $ = (id) => document.getElementById(id);
 
 let pdf, zoom = 1, baseW, baseH;           // css size of a page at zoom 1
+let raw1, sizedFor = 0;                    // page-1 natural viewport; width we last laid out for
 const holders = [];                        // page container divs
 const rendered = new Map();                // pageNo -> canvas
 const MAX_LIVE = 24;
 
 function fitWidth(vp) {
-  const target = Math.min(innerWidth - 24, 900);
+  // floor guards against background tabs, where innerWidth can report 0 at load
+  const target = Math.max(320, Math.min(innerWidth - 24, 900));
   return target / vp.width;
 }
 
@@ -168,8 +170,9 @@ async function boot() {
     range: makeRangeTransport(pdfjsLib), disableAutoFetch: true, rangeChunkSize: 1048576,
   }).promise;
   const p1 = await pdf.getPage(1);
-  const vp1 = p1.getViewport({ scale: fitWidth(p1.getViewport({ scale: 1 })) });
-  baseW = vp1.width; baseH = vp1.height;
+  raw1 = p1.getViewport({ scale: 1 });
+  const vp1 = p1.getViewport({ scale: fitWidth(raw1) });
+  baseW = vp1.width; baseH = vp1.height; sizedFor = innerWidth;
   window.__dbg = { baseW, baseH, pages: pdf.numPages };
   const frag = document.createDocumentFragment();
   for (let i = 1; i <= pdf.numPages; i++) {
@@ -205,6 +208,19 @@ function setZoom(z) {
 }
 $("z-in").onclick = () => setZoom(zoom * 1.2);
 $("z-out").onclick = () => setZoom(zoom / 1.2);
+
+// re-layout when the viewport meaningfully changes (tab fronted, window resized)
+function reflow() {
+  if (!pdf || Math.abs(innerWidth - sizedFor) < 40) return;
+  const vp1 = raw1 ? { width: raw1.width * fitWidth(raw1) * zoom, height: raw1.height * fitWidth(raw1) * zoom } : null;
+  if (!vp1) return;
+  baseW = raw1.width * fitWidth(raw1); baseH = raw1.height * fitWidth(raw1);
+  sizedFor = innerWidth;
+  setZoom(zoom);   // clears canvases, resizes holders, re-renders at the new width
+}
+let rfT = null;
+addEventListener("resize", () => { clearTimeout(rfT); rfT = setTimeout(reflow, 300); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(reflow, 100); });
 
 boot().catch((e) => { $("boot").innerHTML = "couldn't open the book: " + e.message; });
 </script>
