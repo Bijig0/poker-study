@@ -181,6 +181,26 @@ eleventyExcludeFromCollections: true
     #ctx .mi.danger { color: var(--danger); }
     #ctx .hr { height: 1px; background: #3a3a3a; margin: 4px 6px; }
 
+    /* ── Modal (replaces native confirm(), which browsers can silently block) ── */
+    #modal {
+      position: fixed; inset: 0; z-index: 60; display: none;
+      align-items: center; justify-content: center; background: rgba(0,0,0,0.55);
+    }
+    .mbox {
+      background: #262626; border: 1px solid #3a3a3a; border-radius: 10px;
+      padding: 20px; width: min(22rem, calc(100% - 40px));
+      box-shadow: 0 16px 50px rgba(0,0,0,0.6);
+    }
+    #m-msg { font-size: 14px; color: var(--text); line-height: 1.5; margin-bottom: 16px; }
+    .mrow { display: flex; justify-content: flex-end; gap: 8px; }
+    .mrow button {
+      border: none; border-radius: 6px; padding: 6px 14px; font-size: 13px;
+      cursor: pointer; font-family: var(--ui); background: #3a3a3a; color: var(--text);
+    }
+    .mrow button:hover { filter: brightness(1.15); }
+    #m-ok.danger { background: var(--danger); color: #fff; }
+    #m-ok:not(.danger) { background: var(--accent); color: #fff; }
+
     @media (max-width: 720px) {
       #app.on { flex-direction: column; }
       aside { width: 100%; min-width: 0; max-height: 45dvh; }
@@ -225,6 +245,7 @@ eleventyExcludeFromCollections: true
     <div class="side-bottom">
       <a class="mini" href="/">view site ↗</a>
       <span class="grow"></span>
+      <span class="mini" id="ver"></span>
       <button class="mini" id="b-logout">log out</button>
     </div>
   </aside>
@@ -245,7 +266,18 @@ eleventyExcludeFromCollections: true
 
 <div id="ctx"></div>
 
+<div id="modal">
+  <div class="mbox">
+    <div id="m-msg"></div>
+    <div class="mrow">
+      <button id="m-cancel">Cancel</button>
+      <button id="m-ok">OK</button>
+    </div>
+  </div>
+</div>
+
 <script>
+const VERSION = "v6";
 const REPO = "Bijig0/poker-study";
 const API = "https://api.github.com/repos/" + REPO;
 const CONFIG_PATH = "write-config.json";
@@ -333,6 +365,36 @@ async function commitChanges(changes, message, attempt = 0) {
 /* ── status helper ── */
 function say(msg, cls) { $("status").textContent = msg; $("status").className = cls || ""; }
 function busy(b) { $("b-publish").disabled = b; }
+
+// any uncaught error lands in the status bar — nothing may ever fail silently
+window.addEventListener("error", (e) => say(e.message || "unexpected error", "err"));
+window.addEventListener("unhandledrejection", (e) =>
+  say((e.reason && e.reason.message) || "unexpected error", "err"));
+
+/* ── in-app confirm modal ── */
+let modalResolve = null;
+function ask(msg, okLabel, danger) {
+  return new Promise((res) => {
+    modalResolve = res;
+    $("m-msg").textContent = msg;
+    $("m-ok").textContent = okLabel || "OK";
+    $("m-ok").className = danger ? "danger" : "";
+    $("modal").style.display = "flex";
+    $("m-ok").focus();
+  });
+}
+function closeModal(v) {
+  $("modal").style.display = "none";
+  if (modalResolve) { modalResolve(v); modalResolve = null; }
+}
+$("m-ok").onclick = () => closeModal(true);
+$("m-cancel").onclick = () => closeModal(false);
+$("modal").onclick = (e) => { if (e.target === $("modal")) closeModal(false); };
+document.addEventListener("keydown", (e) => {
+  if ($("modal").style.display !== "flex") return;
+  if (e.key === "Enter") { e.preventDefault(); closeModal(true); }
+  if (e.key === "Escape") { e.preventDefault(); closeModal(false); }
+});
 
 /* ── gate ── */
 async function loadConfig() {
@@ -446,7 +508,7 @@ function renderBranch(node, container, prefix) {
     row.draggable = true;
     row.innerHTML = '<span class="nm"></span>';
     row.querySelector(".nm").textContent = n.file.replace(/\.md$/, "");
-    row.onclick = () => confirmLose() && openNote(n.path);
+    row.onclick = async () => { if (await confirmLose()) openNote(n.path); };
     row.oncontextmenu = (e) => ctxMenu(e, "note", n.path);
     dragSetup(row, "note", n.path);
     container.appendChild(row);
@@ -580,8 +642,10 @@ async function deleteItem(kind, path) {
     changes = inside.map((f) => ({ path: "notes/" + f }));
   }
   const c = await commitChanges(changes, kind + ": delete " + path);
-  if (current && (current === path || current.startsWith(path + "/")))
-    newDraft(path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "");
+  if (current && (current === path || current.startsWith(path + "/"))) {
+    dirty = false;   // the note is gone; nothing left to discard
+    await newDraft(path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "");
+  }
   if (draftFolder && (draftFolder === path || draftFolder.startsWith(path + "/"))) draftFolder = "";
   await refreshTree(c.tree.sha);
 }
@@ -702,12 +766,14 @@ function inlineNewFolder(parent) {
 
 /* ── delete (UI wrapper: confirm, then one atomic commit) ── */
 async function removeItem(kind, path) {
+  let msg;
   if (kind === "note") {
-    if (!confirm('Delete "' + path.split("/").pop().replace(/\.md$/, "") + '"?')) return;
+    msg = 'Delete "' + path.split("/").pop().replace(/\.md$/, "") + '"?';
   } else {
     const n = allFiles.filter((f) => f.startsWith(path + "/") && f.endsWith(".md")).length;
-    if (!confirm('Delete folder "' + path + '"' + (n ? " and the " + n + " note(s) inside" : "") + "?")) return;
+    msg = 'Delete folder "' + path + '"' + (n ? " and the " + n + " note(s) inside" : "") + "?";
   }
+  if (!(await ask(msg, "Delete", true))) return;
   busy(true);
   try {
     say("deleting…");
@@ -718,7 +784,7 @@ async function removeItem(kind, path) {
 }
 
 /* ── editor ── */
-function confirmLose() { return !dirty || confirm("Discard unpublished changes?"); }
+async function confirmLose() { return !dirty || ask("Discard unpublished changes?", "Discard", true); }
 function markDirty(d) { dirty = d; if (d) say("unpublished changes"); else if ($("status").className === "") say(""); }
 for (const id of ["f-title", "f-summary", "f-body"]) $(id).oninput = () => markDirty(true);
 window.onbeforeunload = () => (dirty ? true : undefined);
@@ -768,8 +834,8 @@ async function openNote(path) {
   markDirty(false); say("");
   setCrumb(); renderTree();
 }
-function newDraft(folder) {
-  if (!confirmLose()) return;
+async function newDraft(folder) {
+  if (!(await confirmLose())) return;
   current = null; currentSha = null; currentDate = ""; draftFolder = folder || "";
   $("f-title").value = ""; $("f-summary").value = ""; $("f-body").value = "";
   markDirty(false); say("");
@@ -819,6 +885,8 @@ async function enterApp() {
   if (want && notes.includes(want)) openNote(want);
 }
 (async () => {
+  $("ver").textContent = VERSION;
+  console.log("poker-study writer", VERSION);
   try { await loadConfig(); } catch (e) { $("g-err").textContent = e.message; }
   if (!config) { setupMode(true); $("g-hint").textContent = "one-time setup on first use"; return; }
   const saved = localStorage.getItem(LS_KEY);
