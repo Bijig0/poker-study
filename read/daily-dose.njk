@@ -60,9 +60,10 @@ eleventyExcludeFromCollections: true
 <div id="pages"></div>
 
 <script type="module">
-import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.min.mjs";
+// vendored same-origin: browsers refuse cross-origin workers, which hangs PDF.js silently
+import * as pdfjsLib from "../../assets/pdfjs/pdf.min.mjs";
 pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.worker.min.mjs";
+  new URL("../../assets/pdfjs/pdf.worker.min.mjs", import.meta.url).href;
 
 const URL_ = "https://cxvx4va6ibu23h0b.public.blob.vercel-storage.com/library/daily-dose-of-gto.pdf";
 const LS_POS = "ddgto-reader-pos";
