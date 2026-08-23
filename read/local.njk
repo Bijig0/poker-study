@@ -1,0 +1,113 @@
+---
+permalink: /read/local/
+eleventyExcludeFromCollections: true
+---
+{% raw %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Local book · Poker Study</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📕</text></svg>">
+  <link rel="stylesheet" href="/assets/reader.css">
+</head>
+<body>
+<div class="app">
+  <header>
+    <a href="/notes/library/">← library</a>
+    <span id="btitle">Local book</span>
+    <div class="grow"></div>
+    <span id="pageinfo"></span>
+    <button id="b-notes" title="Side-by-side notes">✎ notes</button>
+    <button id="z-out" title="Zoom out">−</button>
+    <button id="z-in" title="Zoom in">+</button>
+  </header>
+  <div class="row">
+    <div id="scroll">
+      <div id="boot">
+        <div id="boot-idle">
+          <button class="pick" id="b-pick">Open a PDF from this Mac…</button>
+          <p></p>
+          <button class="pick alt" id="b-reopen" style="display:none"></button>
+          <p class="hint">The file is read straight from your disk and never uploaded anywhere —
+          this page just displays it. Reading position is remembered per book, per browser.</p>
+          <input type="file" id="f-file" accept="application/pdf" style="display:none">
+        </div>
+        <div id="boot-busy" style="display:none"><div class="spin"></div><div>opening the book…</div></div>
+      </div>
+      <div id="pages"></div>
+    </div>
+    <div id="notes"><iframe id="notes-frame" data-src="/write/" title="notes"></iframe></div>
+  </div>
+</div>
+<script type="module">
+import { initReader } from "../../assets/reader.js";
+const $ = (id) => document.getElementById(id);
+
+/* remember the file handle (Chrome/Edge) so next visit is one click */
+const idb = () => new Promise((res, rej) => {
+  const q = indexedDB.open("local-reader", 1);
+  q.onupgradeneeded = () => q.result.createObjectStore("handles");
+  q.onsuccess = () => res(q.result);
+  q.onerror = () => rej(q.error);
+});
+async function saveHandle(h) {
+  try { const db = await idb(); db.transaction("handles", "readwrite").objectStore("handles").put(h, "last"); } catch (_) {}
+}
+async function loadHandle() {
+  try {
+    const db = await idb();
+    return await new Promise((res) => {
+      const g = db.transaction("handles").objectStore("handles").get("last");
+      g.onsuccess = () => res(g.result || null);
+      g.onerror = () => res(null);
+    });
+  } catch (_) { return null; }
+}
+
+async function start(file) {
+  $("boot-idle").style.display = "none";
+  $("boot-busy").style.display = "flex";
+  $("btitle").textContent = file.name.replace(/\.pdf$/i, "");
+  try {
+    const data = await file.arrayBuffer();
+    await initReader({ mode: "local", data, posKey: "local:" + file.name });
+  } catch (e) {
+    $("boot-busy").innerHTML = "couldn't open that PDF: " + e.message;
+  }
+}
+window.__openLocalBlob = start;   // testing hook
+
+$("b-pick").onclick = async () => {
+  if (window.showOpenFilePicker) {
+    try {
+      const [h] = await showOpenFilePicker({ types: [{ description: "PDF", accept: { "application/pdf": [".pdf"] } }] });
+      await saveHandle(h);
+      start(await h.getFile());
+    } catch (_) {}   // user cancelled
+  } else {
+    $("f-file").click();
+  }
+};
+$("f-file").onchange = () => { if ($("f-file").files[0]) start($("f-file").files[0]); };
+
+(async () => {
+  const h = await loadHandle();
+  if (!h) return;
+  const b = $("b-reopen");
+  b.textContent = "Reopen “" + h.name.replace(/\.pdf$/i, "") + "”";
+  b.style.display = "inline-block";
+  b.onclick = async () => {
+    try {
+      if ((await h.queryPermission({ mode: "read" })) !== "granted" &&
+          (await h.requestPermission({ mode: "read" })) !== "granted") return;
+      start(await h.getFile());
+    } catch (e) { b.textContent = "couldn't reopen — pick the file again"; }
+  };
+})();
+</script>
+</body>
+</html>
+{% endraw %}
