@@ -5,7 +5,7 @@ summary: "Books and references — click to read."
 
 ## Books
 
-- **[Daily Dose of GTO — the book (PDF)](https://download.dailydoseofgto.com/book/v3/DailyDoseOfGTO_Book.pdf)** — opens right in the browser tab. It's ~165 MB, so give it a few seconds on first load. Official free download from [dailydoseofgto.com](https://www.dailydoseofgto.com/).
+- **[Daily Dose of GTO — the book](https://cxvx4va6ibu23h0b.public.blob.vercel-storage.com/library/daily-dose-of-gto.pdf)** — opens straight in the browser, page 1 shows while the rest streams. Book by [dailydoseofgto.com](https://www.dailydoseofgto.com/) (their [original download](https://download.dailydoseofgto.com/book/v3/DailyDoseOfGTO_Book.pdf)).
 
 ## Sites
 
