@@ -104,20 +104,25 @@ function fitWidth(vp) {
 async function renderPage(no) {
   if (rendered.has(no)) return;
   rendered.set(no, null);                  // reserve to avoid double-render
-  const page = await pdf.getPage(no);
-  const scale = fitWidth(page.getViewport({ scale: 1 })) * zoom;
-  const vp = page.getViewport({ scale });
-  const dpr = Math.min(devicePixelRatio || 1, 2);
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.floor(vp.width * dpr);
-  canvas.height = Math.floor(vp.height * dpr);
-  const ctx = canvas.getContext("2d");
-  await page.render({ canvasContext: ctx, viewport: vp, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null }).promise;
-  const h = holders[no - 1];
-  h.style.width = vp.width + "px"; h.style.height = vp.height + "px";
-  h.replaceChildren(canvas);
-  rendered.set(no, canvas);
-  if (rendered.size > MAX_LIVE) evictFar(no);
+  try {
+    const page = await pdf.getPage(no);
+    const scale = fitWidth(page.getViewport({ scale: 1 })) * zoom;
+    const vp = page.getViewport({ scale });
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.floor(vp.width * dpr);
+    canvas.height = Math.floor(vp.height * dpr);
+    const ctx = canvas.getContext("2d");
+    await page.render({ canvasContext: ctx, viewport: vp, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null }).promise;
+    const h = holders[no - 1];
+    h.style.width = vp.width + "px"; h.style.height = vp.height + "px";
+    h.replaceChildren(canvas);
+    rendered.set(no, canvas);
+    if (rendered.size > MAX_LIVE) evictFar(no);
+  } catch (e) {
+    rendered.delete(no);                   // failed: allow a retry on next intersection
+    console.error("render p" + no, e);
+  }
 }
 function evictFar(center) {
   const far = [...rendered.keys()].filter((n) => rendered.get(n) && Math.abs(n - center) > 12);
@@ -154,6 +159,7 @@ async function boot() {
   const p1 = await pdf.getPage(1);
   const vp1 = p1.getViewport({ scale: fitWidth(p1.getViewport({ scale: 1 })) });
   baseW = vp1.width; baseH = vp1.height;
+  window.__dbg = { baseW, baseH, pages: pdf.numPages };
   const frag = document.createDocumentFragment();
   for (let i = 1; i <= pdf.numPages; i++) {
     const d = document.createElement("div");
