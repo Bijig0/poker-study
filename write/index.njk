@@ -277,7 +277,7 @@ eleventyExcludeFromCollections: true
 </div>
 
 <script>
-const VERSION = "v8";
+const VERSION = "v9";
 const REPO = "Bijig0/poker-study";
 const API = "https://api.github.com/repos/" + REPO;
 const CONFIG_PATH = "write-config.json";
@@ -444,7 +444,7 @@ const saveClosed = () => localStorage.setItem(LS_CLOSED, JSON.stringify([...clos
 
 function updateSync() {
   if (syncing > 0) say("saving…");
-  else if (dirty) say("unsaved edits (kept locally) — publish when ready");
+  else if (dirty) say("editing — autosaves in a moment");
   else say("all changes saved — site updates in ~1 min", "ok");
 }
 // serialize commits; on failure roll the view back to server truth
@@ -839,10 +839,10 @@ function persistDraft() {
 function markDirty(d) {
   dirty = d;
   persistDraft();
-  if (d) say("unsaved edits (kept locally) — publish when ready");
+  if (d) say("editing — autosaves in a moment");
   else if ($("status").className === "") say("");
 }
-for (const id of ["f-title", "f-summary", "f-body"]) $(id).oninput = () => markDirty(true);
+for (const id of ["f-title", "f-summary", "f-body"]) $(id).oninput = () => { markDirty(true); queueAutosave(); };
 document.addEventListener("keydown", (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); if ($("app").classList.contains("on")) publish(); }
 });
@@ -931,6 +931,41 @@ function publish() {
   } catch (err) { say(err.message, "err"); }
 }
 $("b-publish").onclick = publish;
+
+/* ── autosave: 5s after typing stops ── */
+let autoT = null;
+function queueAutosave() { clearTimeout(autoT); autoT = setTimeout(autosave, 5000); }
+function autosave() {
+  if (!dirty) return;
+  const titleFocused = document.activeElement === $("f-title");
+  if (!current) {
+    if (titleFocused) { queueAutosave(); return; }        // let them finish naming it first
+    if (!$("f-title").value.trim() && !$("f-summary").value.trim() && !$("f-body").value.trim()) return;
+    const dir = draftFolder ? draftFolder + "/" : "";
+    let name = sanitizeName($("f-title").value) || "Untitled";
+    if (notes.includes(dir + name + ".md")) {             // Obsidian-style: Untitled 2, 3…
+      let i = 2;
+      while (notes.includes(dir + name + " " + i + ".md")) i++;
+      $("f-title").value = name + " " + i;
+    }
+    publish();
+    return;
+  }
+  if (titleFocused) {
+    // mid-retitle: save content under the existing name; the rename lands on blur
+    const composed = composeNote();
+    contents.set(current, composed);
+    markDirty(false);
+    enqueue([{ path: "notes/" + current, content: composed }], "note: autosave");
+  } else {
+    publish();
+  }
+}
+$("f-title").addEventListener("blur", () => {
+  const name = sanitizeName($("f-title").value);
+  if (current && name && name !== current.split("/").pop().replace(/\.md$/, "")) publish();
+  else if (dirty) autosave();
+});
 $("b-logout").onclick = () => { localStorage.removeItem(LS_KEY); token = null; location.reload(); };
 
 /* ── boot ── */
