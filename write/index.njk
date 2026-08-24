@@ -364,7 +364,9 @@ async function commitChanges(changes, message, attempt = 0) {
     await gh("/git/refs/heads/main", { method: "PATCH", body: JSON.stringify({ sha: commit.sha }) });
     return commit;
   } catch (e) {
-    if (attempt < 2) { await new Promise((r) => setTimeout(r, 900)); return commitChanges(changes, message, attempt + 1); }
+    // GitHub needs a beat to settle rapid sequential commits (non-fast-forward,
+    // BadObjectState) — retry patiently with growing backoff before giving up
+    if (attempt < 5) { await new Promise((r) => setTimeout(r, 700 * (attempt + 1))); return commitChanges(changes, message, attempt + 1); }
     throw e;
   }
 }
@@ -460,6 +462,9 @@ function enqueue(changes, message) {
       syncing--;
       say(err.message, "err");
       try { await refreshTree(); } catch (_) {}
+      if (current && !notes.includes(current)) {   // rolled-back move/rename: keep text as a draft
+        current = null; markDirty(true); setCrumb();
+      }
     });
 }
 window.onbeforeunload = () => (syncing > 0 ? true : undefined);
