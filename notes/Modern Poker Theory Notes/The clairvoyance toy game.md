@@ -10,4 +10,4 @@ So you arrive at a spot,
 
 You don't wanna get exploited, so you wanna play a balanced strategy.
 
-Because you are heads up and the
+Because you are heads up and the minimax theorem,
