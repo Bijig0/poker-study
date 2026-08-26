@@ -37,6 +37,15 @@ however, actually doing this calculation of spreading everything and getting the
 
 So a shortcut to getting it instead, is 
 
+x = B / (P + 2B)
+
+
+Where x is our betting range's fraction of bluffs.
+
+Obvs, more we bet
+
+
+
 The idea is that, we derive optimal play from our opponent, as them choosing their best strategy, using it, and then even telling us what it is. This has an EV attached to it.
 
 And we can capture the exact same EV< just by playing our own game, that is the minimax + mixed strategy theorem, this is just by bluffing the correct frequency basically we can capture the same EV as against an optimal player all the time
