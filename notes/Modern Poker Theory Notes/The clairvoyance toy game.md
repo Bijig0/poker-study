@@ -31,7 +31,11 @@ The idea is because of minimax and idea of mixed strategy, in that our opponent'
 
 Our opponent's lid is when they TELL us their strategy and we choose our own best response to their best strategy. And math (somehow), says that we are actually able to replicate this exact same EV via our own control of our bluffing frequency, that is, them knowing how much we will be bluffing, and responding appropriately. 
 
-We can make this completely player independent 
+We can make this completely player independent actually, by zeroing out the coefficients, that is we are able to via math select out a bluffing frequency that guarantees this payout.
+
+however, actually doing this calculation of spreading everything and getting the full calculation is hard in game,
+
+So a shortcut to getting it instead, is 
 
 The idea is that, we derive optimal play from our opponent, as them choosing their best strategy, using it, and then even telling us what it is. This has an EV attached to it.
 
