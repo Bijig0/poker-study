@@ -46,7 +46,7 @@ Obvs, more we bet, the more bluffs we need because B grows faster than 2b at the
 
 We replace this equation in the general equation and can zero out the coefficient.
 
-This gives us, our optimal bluffing range to get a guaranteed payout
+This gives us, our optimal bluffing percentage to get a guaranteed payout in a toy game of polarity
 
 
 
