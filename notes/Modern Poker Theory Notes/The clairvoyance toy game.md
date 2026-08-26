@@ -21,7 +21,11 @@ But actually getting the proper bluffing frequency and rederiving the entire for
 
 Instead, we can use a more general formula to get the proper bluffing frequency required from our vantage point to zero out the coefficient and thus get this guaranteed payoff.
 
+x = B / (P + 2B)
 
+Where x is the fraction of bluffs required by us to achieve our guaranteed payoff
+
+B is our bet, as B grows, X, the fraction of bluffs we need to have to stay balanced grows along with it
 
 The idea is that, we derive optimal play from our opponent, as them choosing their best strategy, using it, and then even telling us what it is. This has an EV attached to it.
 
