@@ -42,7 +42,11 @@ x = B / (P + 2B)
 
 Where x is our betting range's fraction of bluffs.
 
-Obvs, more we bet
+Obvs, more we bet, the more bluffs we need because B grows faster than 2b at the bottom. 
+
+We replace this equation in the general equation and can zero out the coefficient.
+
+This gives us, our optimal bluffing range to get a guaranteed payout
 
 
 
