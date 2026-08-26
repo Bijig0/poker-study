@@ -29,7 +29,7 @@ B is our bet, as B grows, X, the fraction of bluffs we need to have to stay bala
 
 The idea is because of minimax and idea of mixed strategy, in that our opponent's lid equal to our own guaranteed payoff.
 
-Our opponent's lid is when they TELL us their strategy and we choose our own best response to their best strategy. And math (somehow), says that we are actually able to replicate this exact same EV via our own control of our bluffing frequency, that is,
+Our opponent's lid is when they TELL us their strategy and we choose our own best response to their best strategy. And math (somehow), says that we are actually able to replicate this exact same EV via our own control of our bluffing frequency, that is, them knowing how much we will be bluffing, and 
 
 The idea is that, we derive optimal play from our opponent, as them choosing their best strategy, using it, and then even telling us what it is. This has an EV attached to it.
 
