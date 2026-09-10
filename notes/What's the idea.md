@@ -110,4 +110,4 @@ So at b = 1/2, you can get a whole number
 EV (1/2,c) = 50 + 25 + c(0),
 = 75 ]
 
-as the bettor, because of minimax theorem that your 'maxim' will always be equal to the 'lid', you as the bettor, just by controlling your frequency of your bluffs, and even them knowing this value, can achieve a value of a 'lid', always', where a lid value is a very strong value, that is, a value where if your opponent told you
+as the bettor, because of minimax theorem that your 'maxim' will always be equal to the 'lid', you as the bettor, just by controlling your frequency of your bluffs, and even them knowing this value, can achieve a value of a 'lid', always', where a lid value is a very strong value, that is, a value where if your opponent told you their
