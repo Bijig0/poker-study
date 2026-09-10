@@ -23,8 +23,11 @@ c	Calling frequency: how often the bluff-catcher calls when facing the bet
 
 Let's say for our specific spot to make it simple
 
+Symbol	Value plugged in	Why
 P	100	Pot before the river bet
 B	100	Pot-size bet
 v	½	Half the bettor's range is AA
 1 − v	½	The other half is QQ
+
+
 EV(b, c) = 50 + 50c + 50b − 100bc
