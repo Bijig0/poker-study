@@ -113,3 +113,40 @@ EV (1/2,c) = 50 + 25 + c(0),
 Thus, because of minimax theorem, you can basically always get this really strong game theoretical (idk how to describe) amount, of the lid, yourself, without needing to know anything about your opponents' strategy (e.g in this case 75, we can cancel out the calling freuqency), as long as you just stick to your strategy (keeping b = 1/2) regardless of if your opponent your strategy or not.
 
 Some things to extend off this,
+
+But actually getting the proper bluffing frequency and rederiving the entire formula is kinda hard.
+
+Instead, we can use a more general formula to get the proper bluffing frequency required from our vantage point to zero out the coefficient and thus get this guaranteed payoff.
+
+x = B / (P + 2B)
+
+Where x is the fraction of bluffs required by us to achieve our guaranteed payoff
+
+B is our bet, as B grows, X, the fraction of bluffs we need to have to stay balanced grows along with it
+
+The idea is because of minimax and idea of mixed strategy, in that our opponent's lid equal to our own guaranteed payoff.
+
+Our opponent's lid is when they TELL us their strategy and we choose our own best response to their best strategy. And math (somehow), says that we are actually able to replicate this exact same EV via our own control of our bluffing frequency, that is, them knowing how much we will be bluffing, and responding appropriately. 
+
+We can make this completely player independent actually, by zeroing out the coefficients, that is we are able to via math select out a bluffing frequency that guarantees this payout.
+
+however, actually doing this calculation of spreading everything and getting the full calculation is hard in game,
+
+So a shortcut to getting it instead, is 
+
+x = B / (P + 2B)
+
+
+Where x is our betting range's fraction of bluffs.
+
+Obvs, more we bet, the more bluffs we need because B grows faster than 2b at the bottom. 
+
+We replace this equation in the general equation and can zero out the coefficient.
+
+This gives us, our optimal bluffing percentage to get a guaranteed payout in a toy game of polarity
+
+
+
+The idea is that, we derive optimal play from our opponent, as them choosing their best strategy, using it, and then even telling us what it is. This has an EV attached to it.
+
+And we can capture the exact same EV< just by playing our own game, that is the minimax + mixed strategy theorem, this is just by bluffing the correct frequency basically we can capture the same EV as against an optimal player all the time
