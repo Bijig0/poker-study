@@ -109,3 +109,5 @@ So at b = 1/2, you can get a whole number
 
 EV (1/2,c) = 50 + 25 + c(0),
 = 75 ]
+
+as the bettor, you can e
