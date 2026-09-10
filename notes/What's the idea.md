@@ -33,6 +33,14 @@ For bettor's range:
 AA, 50% of the range. Pure value: beats KK at showdown, always bets.
 QQ, 50% of the range. Pure air: loses to KK at showdown, bets with frequency b and checks otherwise.
 
-Caller's range is KK only
+Caller's range: a single hand, KK. It is the definition of a bluff-catcher in this spot: it loses to AA every time and beats QQ every time, so its only decision is call or fold and its only source of EV is catching bluffs.
+
+The final EV formula thus becomes
 
 EV(b, c) = 50 + 50c + 50b − 100bc
+
+Note the two variables here, b and c
+
+EV of the bettor is dictated by two things, 
+1. his own bluff frequency 
+2. Caller's call frequency.
