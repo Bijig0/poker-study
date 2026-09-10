@@ -67,4 +67,4 @@ You can re-arrange it to
 EV(b, c) = 50 + 50c + 50b − 100bc
          = 50 + 50c + b·(50 − 100c)
 
-And then actually pick out a
+And then actually pick out a specific b to get a whole number
