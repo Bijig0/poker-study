@@ -110,4 +110,4 @@ So at b = 1/2, you can get a whole number
 EV (1/2,c) = 50 + 25 + c(0),
 = 75 ]
 
-Thus, because of minimax theorem, you can basically always get this really strong game theoretical (idk how to describe) amount, of the lid, yourself, without needing to know anything about your opponents' strategy (e.g in this case 75, we can cancel out the calling freuqency)
+Thus, because of minimax theorem, you can basically always get this really strong game theoretical (idk how to describe) amount, of the lid, yourself, without needing to know anything about your opponents' strategy (e.g in this case 75, we can cancel out the calling freuqency), as long as you just stick to your strategy (keeping b = 1/2) regardless of if your opponent your strategy or not.
