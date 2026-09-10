@@ -54,4 +54,6 @@ b \ c	0	0.25	0.5	0.75	1
 0.75	87.5	81.2	75.0	68.8	62.5
 1	100.0	87.5	75.0	62.5	50.0
 
-This is the exploit game in terms of bluffing and calling sort of captured. An individual will bluff more, but opens themselves up to EV loss by the caller calling more
+This is the exploit game in terms of bluffing and calling sort of captured. An individual will bluff more, but opens themselves up to EV loss by the caller calling more and you can play this sort of levelling game if you'd like with the caller and who will bluff or call more.
+
+However, say you don't wanna deal with this, you can play "GTO" instead.
