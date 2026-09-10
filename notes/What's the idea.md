@@ -114,7 +114,7 @@ Thus, because of minimax theorem, you can basically always get this really stron
 
 Some things to extend off this,
 
-But actually getting the proper bluffing frequency and rederiving the entire formula is kinda hard.
+But actually getting the proper bluffing frequency and rederiving the entire formula is kinda hard. because as you saw above, to get the b or c we need to go through the generalized formula, input in pot size, bet sizes etc, which is complicated in game
 
 Instead, we can use a more general formula to get the proper bluffing frequency required from our vantage point to zero out the coefficient and thus get this guaranteed payoff.
 
@@ -123,6 +123,8 @@ x = B / (P + 2B)
 Where x is the fraction of bluffs required by us to achieve our guaranteed payoff
 
 B is our bet, as B grows, X, the fraction of bluffs we need to have to stay balanced grows along with it
+
+
 
 The idea is because of minimax and idea of mixed strategy, in that our opponent's lid equal to our own guaranteed payoff.
 
