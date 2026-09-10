@@ -89,4 +89,6 @@ Say you're in the same game with the same ranges (bettor has AA and QQ), caller 
 
 We ask two questions.
 
-Bettor asks, if my opponent knew how much I was bluffing,
+Bettor asks, if Im forced to tell my opponent my bluffing frequency, what's the worst case scenario if they responded the best way possible. This number is called a 'maxim'
+
+Caller asks: If I'm forced to tell my strategy to my opponent, what's the most I could hold them to (That is, I choose the strategy that for which if my opponent responded perfectly, I would make the most
