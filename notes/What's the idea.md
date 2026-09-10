@@ -91,4 +91,4 @@ We ask two questions.
 
 Bettor asks, if Im forced to tell my opponent my bluffing frequency, what's the worst case scenario if they responded the best way possible. This number is called a 'maxim'
 
-Caller asks: If I'm forced to tell my strategy to my opponent, what's the most I could hold them to (That is, I choose the strategy that for which if my opponent responded perfectly, I would make the most
+Caller asks: If I'm forced to tell my strategy to my opponent, what's the most I could hold them to (That is, I choose the strategy that for which if my opponent responded perfectly, I would make the most). This is your 'lid'.
