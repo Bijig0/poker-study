@@ -29,5 +29,7 @@ B	100	Pot-size bet
 v	½	Half the bettor's range is AA
 1 − v	½	The other half is QQ
 
+Bettor's range is AA and QQ
+Caller's range is KK only
 
 EV(b, c) = 50 + 50c + 50b − 100bc
