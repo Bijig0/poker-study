@@ -23,6 +23,6 @@ c	Calling frequency: how often the bluff-catcher calls when facing the bet
 
 Let's say for our specific spot to make it simple
 
-Pot is 100, and your river bet size is 
+Pot is 100, and your river bet size is 50
 
 EV(b, c) = 50 + 50c + 50b − 100bc
