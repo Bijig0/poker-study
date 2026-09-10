@@ -44,3 +44,10 @@ Note the two variables here, b and c
 EV of the bettor is dictated by two things, 
 1. his own bluff frequency 
 2. Caller's call frequency.
+
+b \ c	0	0.25	0.5	0.75	1
+0	50.0	62.5	75.0	87.5	100.0
+0.25	62.5	68.8	75.0	81.2	87.5
+0.5	75.0	75.0	75.0	75.0	75.0
+0.75	87.5	81.2	75.0	68.8	62.5
+1	100.0	87.5	75.0	62.5	50.0
