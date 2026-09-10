@@ -94,3 +94,5 @@ Bettor asks, if Im forced to tell my opponent my bluffing frequency, what's the 
 Caller asks: If I'm forced to tell my strategy to my opponent, what's the most I could hold them to (That is, I choose the strategy that for which if my opponent responded perfectly, I would make the most). The idea of this is basically like, assuming my opponent is the best player ever, since we are playing in a heads up spot, how much could I limit them to, right. This number is known as your 'lid'.
 
 The idea, is that this 'lid' number, assuming a mixed strategy (i.e randomizing the frequency), will always equal the value of the 'maxim'.
+
+So, to link back to the top,
