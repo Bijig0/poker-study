@@ -13,3 +13,10 @@ Ok. Sure.
 EV is amount of chips you can gain playing an action over the long run, calculated by
 
 EV(b, c) = v·(P + c·B)  +  (1 − v)·b·(P − c·(P + B))
+
+P	Pot size before the river bet
+B	Size of the river bet
+v	Fraction of the bettor's range that is value (hands that beat the bluff-catcher). In the toy spot, AA is v = ½
+1 − v	Fraction of the bettor's range that is air (hands that lose to the bluff-catcher). In the toy spot, QQ
+b	Bluffing frequency: the fraction of air hands that bet rather than check
+c	Calling frequency: how often the bluff-catcher calls when facing the bet
