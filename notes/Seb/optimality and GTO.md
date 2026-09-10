@@ -156,3 +156,5 @@ And we can capture the exact same EV< just by playing our own game, that is the 
 The final idea,
 
 Is that, first off, every spot you go through has thus, a "GTO" solution similar to this and a deviation game similar to the table above, and it's important to quantitatively know, how whenever your or your opponents' range changes how these numbers change as well.
+
+Along with the idea of how range mo
