@@ -96,3 +96,16 @@ Caller asks: If I'm forced to tell my strategy to my opponent, what's the most I
 The idea, is that this 'lid' number, assuming a mixed strategy (i.e randomizing the frequency), will always equal the value of the 'maxim'.
 
 So, to link back to the top,
+
+[ EV(b, c) = 50 + 50c + 50b − 100bc
+         = 50 + 50b + c·(50 − 100b)
+
+And then actually pick out a specific b to get a whole number. (Grade 7 math lol), so
+
+50 − 100b = 0
+b = ½
+
+So at b = 1/2, you can get a whole number
+
+EV (1/2,c) = 50 + 25 + c(0),
+= 75 ]
