@@ -89,4 +89,4 @@ Say you're in the same game with the same ranges (bettor has AA and QQ), caller 
 
 We ask two questions.
 
-Bettor asks, if my opponent knew how much I was bluffing, and
+Bettor asks, if my opponent knew how much I was bluffing,
