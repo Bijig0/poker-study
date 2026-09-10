@@ -157,4 +157,4 @@ The final idea,
 
 Is that, first off, every spot you go through has thus, a "GTO" solution similar to this and a deviation game similar to the table above, and it's important to quantitatively know, how whenever your or your opponents' range changes how these numbers change as well.
 
-Along with the idea of how range mo
+Along with the idea of how specifically, a change in your opponents' range construction, arriving in different spots, thus changes the range morphologies between you two, and thus how you can use different strategies in these spots thus to
