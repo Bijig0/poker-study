@@ -20,3 +20,9 @@ v	Fraction of the bettor's range that is value (hands that beat the bluff-catche
 1 − v	Fraction of the bettor's range that is air (hands that lose to the bluff-catcher). In the toy spot, QQ
 b	Bluffing frequency: the fraction of air hands that bet rather than check
 c	Calling frequency: how often the bluff-catcher calls when facing the bet
+
+Let's say for our specific spot to make it simple
+
+Pot is 
+
+EV(b, c) = 50 + 50c + 50b − 100bc
