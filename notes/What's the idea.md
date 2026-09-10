@@ -57,3 +57,7 @@ b \ c	0	0.25	0.5	0.75	1
 This is the exploit game in terms of bluffing and calling sort of captured. An individual will bluff more, but opens themselves up to EV loss by the caller calling more and you can play this sort of levelling game if you'd like with the caller and who will bluff or call more.
 
 However, say you don't wanna deal with this, you can play "GTO" instead.
+
+Note the equation for EV here
+
+EV(b, c) = 50 + 50c + 50b − 100bc
