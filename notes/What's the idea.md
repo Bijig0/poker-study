@@ -42,10 +42,10 @@ EV(b, c) = 50 + 50c + 50b − 100bc
 Note the two variables here, b and c
 
 EV of the bettor is dictated by two things, 
-1. his own bluff frequency 
-2. Caller's call frequency.
+1. his own bluff frequency (Bluffing with QQ, note AA will always bet because KK player knows opponent will never bet because you will always call with better knowing their range is KK only) 
+2. Caller's call frequency.(Caller will only call to bluff catch here)
 
-The table below shows how different bluffing and calling frequencies affect
+The table below shows how different bluffing and calling frequencies affect final EV.
 
 b \ c	0	0.25	0.5	0.75	1
 0	50.0	62.5	75.0	87.5	100.0
@@ -53,3 +53,5 @@ b \ c	0	0.25	0.5	0.75	1
 0.5	75.0	75.0	75.0	75.0	75.0
 0.75	87.5	81.2	75.0	68.8	62.5
 1	100.0	87.5	75.0	62.5	50.0
+
+This is the exploit game in terms of bluffing and calling
