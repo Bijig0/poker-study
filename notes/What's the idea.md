@@ -82,3 +82,11 @@ Ok. So if we as the bettor in this toy game bluff at an appropriate frequency, t
 But what does 75 actually represent. It's a whole number...so what, what's so magical about it?
 
 The minimax theorem.
+
+Let's put the above aside for a bit, we will link to it in a bit.
+
+Say you're in the same game with the same ranges (bettor has AA and QQ), caller has KK,
+
+We ask two questions.
+
+Bettor asks,
