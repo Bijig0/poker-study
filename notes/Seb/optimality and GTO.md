@@ -152,3 +152,7 @@ This gives us, our optimal bluffing percentage to get a guaranteed payout in a t
 The idea is that, we derive optimal play from our opponent, as them choosing their best strategy, using it, and then even telling us what it is. This has an EV attached to it.
 
 And we can capture the exact same EV< just by playing our own game, that is the minimax + mixed strategy theorem, this is just by bluffing the correct frequency basically we can capture the same EV as against an optimal player all the time
+
+The final idea,
+
+Is that,
