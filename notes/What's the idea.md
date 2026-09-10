@@ -61,3 +61,10 @@ However, say you don't wanna deal with this, you can play "GTO" instead.
 Note the equation for EV here
 
 EV(b, c) = 50 + 50c + 50b − 100bc
+
+You can re-arrange it to 
+
+EV(b, c) = 50 + 50c + 50b − 100bc
+         = 50 + 50c + b·(50 − 100c)
+
+And then actually pick out a
