@@ -74,4 +74,11 @@ b = ½
 
 So at b = 1/2, you can get a whole number
 
-EV (
+EV (1/2,c) = 50 + 25 + c(0),
+= 75
+
+Ok. So if we as the bettor in this toy game bluff at an appropriate frequency, that is, 1/2, we can eliminate entirely our opponent's ability to make any money off us off deviations by changing their calling frequency (this is the stemming of bluff to value ratio in equilibrium play).
+
+But what does 75 actually represent. It's a whole number...so what, what's so magical about it?
+
+The minimax theorem.
