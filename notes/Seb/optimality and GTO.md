@@ -6,7 +6,7 @@ You get to a river spot.
 
 You're holding your cards, your opponent is holding their cards. What do you do?
 
-Step 1 is easy. You're playing a poker, where the decision of the game is to maximize your EV. 
+Step 1 is easy. You're playing poker, where the decision of the game is to maximize your EV. 
 
 Ok. Sure.
 
